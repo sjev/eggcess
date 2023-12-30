@@ -13,7 +13,7 @@ that I've built, focusing on *reliability* ... and a good reason to play with Mi
 * stand-alone operation - can go without wifi connection for a long time
 * auto-recovery - automatic recalibration if power was lost during movement
 * MQTT interface - connect to anything
-
+* compact electronics, can be built without soldering, just use jumper wires.
 
 ## Bill of materials
 
