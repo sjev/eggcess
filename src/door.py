@@ -123,8 +123,8 @@ class Door:
     async def open(self, distance_mm: float = TRAVEL_MM + OPEN_EXTRA_MM):
         """open the door"""
         print("opening door")
-        if self.state == STATE_OPEN:
-            print("door is already open")
+        if self.state not in [STATE_CLOSED, STATE_UNKNOWN]:
+            print(f"cannot open door from state {self.state}")
             return
 
         self.state = STATE_MOVING
@@ -134,8 +134,8 @@ class Door:
     async def close(self, distance_mm: float = TRAVEL_MM):
         """close the door"""
         print("closing door")
-        if self.state == STATE_CLOSED:
-            print("door is already closed")
+        if self.state not in [STATE_OPEN, STATE_UNKNOWN]:
+            print(f"cannot close door from state {self.state}")
             return
         self.state = STATE_MOVING
         await self.move(DIRECTION_CLOSE, distance_mm)
