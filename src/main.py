@@ -168,12 +168,8 @@ async def open_and_close():
             # wait until next event
             await asyncio.sleep(sleep_duration)
 
-            # Perform action if the door is not already in the desired state
-            if (door.state == STATE_CLOSED and next_action == door.open) or (
-                door.state == STATE_OPEN and next_action == door.close
-            ):
-                print(f"performing {next_action.__name__}")
-                await next_action()
+            print(f"performing {next_action.__name__}")
+            await next_action()
 
         except (AssertionError, KeyError) as e:
             print(f"Exception in open_and_close: {type(e).__name__}: {e}")
