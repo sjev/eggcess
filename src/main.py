@@ -74,6 +74,11 @@ async def report_status(client, period_sec=5):
 
     while True:
         try:
+            # flash led
+            led.value(1)
+            await asyncio.sleep(0.01)
+            led.value(0)
+
             wifi = network.WLAN(network.STA_IF)
 
             utc_time = time.localtime()
@@ -127,13 +132,12 @@ async def update_timing():
 
 
 async def open_and_close():
-    """open and close the door"""
-    # TODO: this conflicts with manual open and close. Set sleep time to next open or close time
+    """open and close the door based on schedule, sleeps until next event"""
     while True:
         try:
-            print("checking open and close")
+            print("checking open and close times")
             # get current time
-            _, hours = timing.now()
+            _, current_hours = timing.now()
 
             # get open and close times
             open_time = Params.open_time
@@ -142,34 +146,34 @@ async def open_and_close():
             assert open_time is not None, "open_time is None"
             assert close_time is not None, "close_time is None"
 
-            # get desired state
-            if hours >= open_time and hours < close_time:
-                desired_state = STATE_OPEN
+            # Calculate sleep duration until the next event
+            if current_hours < open_time:
+                # Before open time
+                sleep_duration = (open_time - current_hours) * 3600  # hours to seconds
+                next_action = door.open
+            elif open_time <= current_hours < close_time:
+                # After open time and before close time
+                sleep_duration = (close_time - current_hours) * 3600  # hours to seconds
+                next_action = door.close
             else:
-                desired_state = STATE_CLOSED
+                # After close time, schedule for next open time (next day)
+                sleep_duration = (
+                    (24 - current_hours) + open_time
+                ) * 3600  # hours to seconds
+                next_action = door.open
 
-            Params.desired_state = desired_state
+            print(
+                f"sleep_duration: {sleep_duration}, next_action: {next_action.__name__}"
+            )
+            # wait until next event
+            await asyncio.sleep(sleep_duration)
 
-            # check if door is moving
-            if door.state == STATE_MOVING:
-                print("door is moving, skipping")
-                await asyncio.sleep(5)
-                continue
-
-            # flash led
-            led.value(1)
-            await asyncio.sleep(0.01)
-            led.value(0)
-
-            if door.state != desired_state:
-                print(f"desired state: {desired_state}, current state: {door.state}")
-                if desired_state == STATE_OPEN:
-                    await door.open()
-                else:
-                    await door.close()
-
-            # sleep for next check
-            await asyncio.sleep(5)
+            # Perform action if the door is not already in the desired state
+            if (door.state == STATE_CLOSED and next_action == door.open) or (
+                door.state == STATE_OPEN and next_action == door.close
+            ):
+                print(f"performing {next_action.__name__}")
+                await next_action()
 
         except (AssertionError, KeyError) as e:
             print(f"Exception in open_and_close: {type(e).__name__}: {e}")
