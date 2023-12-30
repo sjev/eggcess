@@ -101,7 +101,7 @@ class Door:
     def reset(self):
         """fully open the door, aginst mechanical stop"""
         print("resetting door")
-        self.open(TRAVEL_REVOLUTIONS + 2)
+        self.open()
 
     async def move(self, direction: int, distance_mm: float):
         """move the door in the specified direction, provide feedback after each revolution"""
@@ -144,7 +144,7 @@ class Door:
 
 async def test():
     """test the door, import door and run door.test() in repl"""
-    door = Door()
+    door = Door(save_state=False)
     distance_mm = 100
 
     await door.open(distance_mm)
