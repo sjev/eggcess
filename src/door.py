@@ -13,7 +13,8 @@ DRIVE_PINS = [Pin(p, Pin.OUT) for p in [2, 3, 4, 5]]
 
 
 MM_PER_REV = 19.6  # mm travel per revolution of the motor
-TRAVEL_REVOLUTIONS = 340 / MM_PER_REV  # number of revolutions to open/close door
+TRAVEL_MM = 340  # door travel distance in mm
+OPEN_EXTRA_MM = 20  # extra mm to open door, push against mechanical stop
 
 
 # door states
@@ -102,8 +103,11 @@ class Door:
         print("resetting door")
         self.open(TRAVEL_REVOLUTIONS + 2)
 
-    async def move(self, direction: int, revolutions: float):
+    async def move(self, direction: int, distance_mm: float):
         """move the door in the specified direction, provide feedback after each revolution"""
+        # convert mm to revolutions
+        revolutions = distance_mm / MM_PER_REV
+
         print(f"moving {direction} for {revolutions} revolutions")
         for _ in range(int(revolutions)):
             self._stepper.step(FULL_ROTATION, direction)
@@ -116,7 +120,7 @@ class Door:
             self._stepper.step(int(remainder * FULL_ROTATION), direction)
             print("remainder: ", remainder)
 
-    async def open(self, revolutions: float = TRAVEL_REVOLUTIONS):
+    async def open(self, distance_mm: float = TRAVEL_MM + OPEN_EXTRA_MM):
         """open the door"""
         print("opening door")
         if self.state == STATE_OPEN:
@@ -124,28 +128,28 @@ class Door:
             return
 
         self.state = STATE_MOVING
-        await self.move(DIRECTION_OPEN, revolutions)
+        await self.move(DIRECTION_OPEN, distance_mm)
         self.state = STATE_OPEN
 
-    async def close(self, revolutions: float = TRAVEL_REVOLUTIONS):
+    async def close(self, distance_mm: float = TRAVEL_MM):
         """close the door"""
         print("closing door")
         if self.state == STATE_CLOSED:
             print("door is already closed")
             return
         self.state = STATE_MOVING
-        await self.move(DIRECTION_CLOSE, revolutions)
+        await self.move(DIRECTION_CLOSE, distance_mm)
         self.state = STATE_CLOSED
 
 
 async def test():
     """test the door, import door and run door.test() in repl"""
     door = Door()
-    revs = 2.5
+    distance_mm = 100
 
-    await door.open(revs)
+    await door.open(distance_mm)
     asyncio.sleep(2)
-    await door.close(revs)
+    await door.close(distance_mm)
     asyncio.sleep(2)
 
 
