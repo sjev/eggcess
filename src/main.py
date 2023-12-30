@@ -15,6 +15,7 @@ from umqtt.robust import MQTTClient
 
 DEVICE_NAME = "coop_door"
 STATUS_TOPIC = "/status/coop_door"
+COMMAND_TOPIC = "/coop_door/cmd"
 
 
 T_START = time.time()
@@ -22,6 +23,8 @@ T_START = time.time()
 led = machine.Pin(
     2, machine.Pin.OUT
 )  # use LED to indicate status. This is also one of drive pins
+
+door = Door()
 
 
 class Params:
@@ -43,11 +46,30 @@ def connect_mqtt(client_id: str):
         user=secrets.MQTT_USER,
         password=secrets.MQTT_PASSWORD,
     )
+    client.set_callback(command_callback)
     client.connect()
+    client.subscribe(COMMAND_TOPIC)
     return client
 
 
-async def report_status(client, door: Door, period_sec=5):
+def command_callback(topic, msg):  # pylint: disable=unused-argument
+    print(f"Received command: {msg}")
+    command = msg.decode()
+    if command == "open":
+        print("opening door by command")
+        asyncio.create_task(door.open())
+    elif command == "close":
+        print("closing door by command")
+        asyncio.create_task(door.close())
+
+
+async def mqtt_listener(client):
+    while True:
+        client.check_msg()  # Check for new MQTT messages
+        await asyncio.sleep(1)  # Pause briefly to avoid blocking
+
+
+async def report_status(client, period_sec=5):
     """report status"""
 
     while True:
@@ -104,9 +126,9 @@ async def update_timing():
             await asyncio.sleep(1)
 
 
-async def open_and_close(door: Door):
+async def open_and_close():
     """open and close the door"""
-
+    # TODO: this conflicts with manual open and close. Set sleep time to next open or close time
     while True:
         try:
             print("checking open and close")
@@ -157,12 +179,12 @@ async def open_and_close(door: Door):
 async def main():
     """main coroutine"""
     mqtt_client = connect_mqtt(DEVICE_NAME)
-    door = Door()
 
     coros = [
-        report_status(mqtt_client, door),
+        report_status(mqtt_client),
+        mqtt_listener(mqtt_client),
         update_timing(),
-        open_and_close(door),
+        open_and_close(),
     ]
 
     await asyncio.gather(*coros)
