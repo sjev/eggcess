@@ -1,0 +1,14 @@
+[MASTER]
+
+disable=
+    import-error,
+    missing-function-docstring,
+    missing-module-docstring,
+    invalid-name,
+    wrong-import-order,
+    no-name-in-module,
+    import-outside-toplevel,
+    no-member,
+    unspecified-encoding,
+    consider-using-f-string,
+    broad-except,

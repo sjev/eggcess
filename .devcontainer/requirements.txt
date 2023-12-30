@@ -1,0 +1,12 @@
+adafruit-ampy
+ephem
+esptool
+invoke
+ipykernel
+ipython
+matplotlib
+micropython-esp32-stubs
+micropython-stubber
+micropy-cli
+pandas
+rshell
