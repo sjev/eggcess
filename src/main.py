@@ -10,6 +10,7 @@ from umqtt.robust import MQTTClient
 
 import timing
 import logger
+import webserver
 import my_secrets as secrets
 
 from door import Door, STATE_CLOSED
@@ -104,6 +105,9 @@ async def report_status(client, period_sec=5):
             }
             client.publish(STATUS_TOPIC, json.dumps(msg))
 
+            # print status to console, to avoid ampy timeout
+            print(f"{msg['time']}, {msg['door_state']}")
+
             await asyncio.sleep(period_sec)
         except Exception as e:
             print(f"Exception in report_status: {type(e).__name__}: {e}")
@@ -190,6 +194,9 @@ async def main():
     """main coroutine"""
     logger.info("starting main")
     mqtt_client = connect_mqtt(DEVICE_NAME)
+
+    # start webserver
+    asyncio.create_task(asyncio.start_server(webserver.serve_client, "0.0.0.0", 80))
 
     coros = [
         report_status(mqtt_client),
