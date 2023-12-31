@@ -1,22 +1,28 @@
-import network
-
-
 from machine import Pin
 import uasyncio as asyncio
+import network
+from logger import LOG_FILE
 
-led = Pin(2, Pin.OUT)
 onboard = Pin(3, Pin.OUT, value=0)
 
 html = """<!DOCTYPE html>
 <html>
-    <head> <title>Pico W</title> </head>
-    <body> <h1>Pico W</h1>
-        <p>%s</p>
+    <head> <title>Eggcess</title> </head>
+    <body> <h1>Eggcess log</h1>
+        <pre>%s</pre>
     </body>
 </html>
 """
 
 wlan = network.WLAN(network.STA_IF)
+
+
+def read_log():
+    try:
+        with open(LOG_FILE, "r") as file:
+            return file.read()
+    except OSError:
+        return "Log file not found."
 
 
 async def serve_client(reader, writer):
@@ -27,24 +33,9 @@ async def serve_client(reader, writer):
     while await reader.readline() != b"\r\n":
         pass
 
-    request = str(request_line)
-    led_on = request.find("/light/on")
-    led_off = request.find("/light/off")
-    print("led on = " + str(led_on))
-    print("led off = " + str(led_off))
+    log_contents = read_log()
 
-    stateis = ""
-    if led_on == 6:
-        print("led on")
-        led.value(1)
-        stateis = "LED is ON"
-
-    if led_off == 6:
-        print("led off")
-        led.value(0)
-        stateis = "LED is OFF"
-
-    response = html % stateis
+    response = html % log_contents
     writer.write("HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n")
     writer.write(response)
 
@@ -53,7 +44,7 @@ async def serve_client(reader, writer):
     print("Client disconnected")
 
 
-async def main():
+async def demo():
     print("Setting up webserver...")
     ip = wlan.ifconfig()[0]
     print("IP address:", ip)
@@ -67,7 +58,8 @@ async def main():
         await asyncio.sleep(5)
 
 
-try:
-    asyncio.run(main())
-finally:
-    asyncio.new_event_loop()
+if __name__ == "__main__":
+    try:
+        asyncio.run(demo())
+    except Exception as e:
+        print("Exited with exception:", e)
