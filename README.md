@@ -33,6 +33,27 @@ like micropython stubs. You may need to set `AMPY_PORT` in `devcontainer.json`
 3. create `src/my_secrets.py` (see example file) and set correct ssid, password etc.
 4. use `invoke` to upload code to the device. (`invoke upload-src`)
 
+## Homeassistant integration
+
+Install `mqtt` integration.
+
+modify `mqtt` section in `configuration.yaml`:
+
+```yaml
+mqtt:
+  switch:
+      - unique_id: eggcess
+        name: "eggcess"
+        state_topic: "/eggcess/state"
+        command_topic: "/eggcess/cmd"
+        payload_on: "open"
+        payload_off: "close"
+        state_on: "open"
+        state_off: "closed"
+        retain: false
+
+```
+
 
 ## Mechanics
 
