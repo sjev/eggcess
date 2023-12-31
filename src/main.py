@@ -18,6 +18,7 @@ from door import Door
 DEVICE_NAME = "eggcess"
 STATUS_TOPIC = f"/status/{DEVICE_NAME}"
 COMMAND_TOPIC = f"/{DEVICE_NAME}/cmd"
+STATE_TOPIC = f"/{DEVICE_NAME}/state"
 
 
 T_START = time.time()
@@ -102,6 +103,9 @@ async def report_status(client, period_sec=5):
                 else None,
             }
             client.publish(STATUS_TOPIC, json.dumps(msg))
+
+            # publish state
+            client.publish(STATE_TOPIC, door.state)
 
             # print status to console, to avoid ampy timeout
             print(f"{msg['time']}, {msg['door_state']}")
