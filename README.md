@@ -1,10 +1,10 @@
-# Eggcess - keeps chickens safe
+# Eggcess - chicken coop door for nerds
 
 This is a fun, useful and educative project that combines mechanical design,
-3D printing, electronics and embedded programming.
+3D printing, electronics, IOT technologies and embedded programming.
 
-This is not "just another" chicken coop door opener. In fact, this is a 4th iteration
-that I've built, focusing on *reliability* ... and a good reason to play with Micropython.
+This is not "just another" chicken coop door opener. In fact, this is a 4th generation
+that I've built, with the main goal to improve *reliability* ... and a good reason to play with Micropython and learn something new.
 
 **Features**
 
@@ -13,6 +13,8 @@ that I've built, focusing on *reliability* ... and a good reason to play with Mi
 * stand-alone operation - can go without wifi connection for a long time
 * auto-recovery - automatic recalibration if power was lost during movement
 * MQTT interface - connect to anything
+* logging saved to non-volatile memory
+* web server,
 * compact electronics, can be built without soldering, just use jumper wires.
 
 ## Bill of materials
@@ -23,6 +25,13 @@ that I've built, focusing on *reliability* ... and a good reason to play with Mi
 
 Total of just 15 euro!
 
+## Quick start
+
+1. Start up VSCode devcontainer. The `Dockerfile` contains all the development goodies,
+like micropython stubs. You may need to set `AMPY_PORT` in `devcontainer.json`
+2. generate lookup table for open and close times using `calculations/calculate_lut.ipynb`
+3. create `src/my_secrets.py` (see example file) and set correct ssid, password etc.
+4. use `invoke` to upload code to the device. (`invoke upload-src`)
 
 
 ## Mechanics
