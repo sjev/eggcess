@@ -129,7 +129,9 @@ async def update_timing():
             # schedule the next update, approx 1 am tomorrow
             delay_hours = 24 - hours + 1
             print(f"next update in {delay_hours} hours")
-            logger.info("time updated")
+            logger.info(
+                f"time updated, open: {timing.hours2str(Params.open_time)}, close: {timing.hours2str(Params.close_time)}"
+            )
 
             await asyncio.sleep(delay_hours * 3600)
 
