@@ -4,13 +4,15 @@ import json
 import time
 
 import machine
-
-import my_secrets as secrets
 import network
-import timing
-
-from door import Door, STATE_CLOSED, STATE_MOVING, STATE_OPEN
 from umqtt.robust import MQTTClient
+
+
+import timing
+import logger
+import my_secrets as secrets
+
+from door import Door, STATE_CLOSED
 
 
 DEVICE_NAME = "coop_door"
@@ -91,7 +93,7 @@ async def report_status(client, period_sec=5):
                 "uptime_h": round(uptime / 3600, 3),
                 "rssi": wifi.status("rssi"),
                 "door_state": door.state,
-                "desired_state": Params.desired_state,
+                "date": Params.date,
                 "time": f"{utc_time[3]:02}:{utc_time[4]:02}:{utc_time[5]:02}",
                 "open": timing.hours2str(Params.open_time)
                 if Params.open_time
@@ -113,26 +115,33 @@ async def update_timing():
 
     while True:
         try:
-            print("updating time")
-            timing.update_time()
+            # get open and close times
             date, hours = timing.now()
             Params.date = date
-
-            # get open and close times
             Params.open_time, Params.close_time = timing.extract_floats_from_file(date)
+
+            # update ntp time (may fail)
+            print("updating time")
+            timing.update_time()
 
             # schedule the next update, approx 1 am tomorrow
             delay_hours = 24 - hours + 1
             print(f"next update in {delay_hours} hours")
+            logger.info("time updated")
+
             await asyncio.sleep(delay_hours * 3600)
 
         except AssertionError as e:
             print(f"Exception in update_timing: {type(e).__name__}: {e}")
             await asyncio.sleep(1)
+        except timing.MaxRetriesExceeded as e:
+            logger.error(f"{type(e).__name__}: {e}")
+            await asyncio.sleep(3600)
 
 
 async def open_and_close():
     """open and close the door based on schedule, sleeps until next event"""
+    # TODO: check desired state on startup
     while True:
         try:
             print("checking open and close times")
@@ -162,22 +171,24 @@ async def open_and_close():
                 ) * 3600  # hours to seconds
                 next_action = door.open
 
-            print(
-                f"sleep_duration: {sleep_duration}, next_action: {next_action.__name__}"
+            logger.info(
+                f"sleep_duration: {sleep_duration/3600} hours, next_action: {next_action.__name__}"
             )
+
             # wait until next event
             await asyncio.sleep(sleep_duration)
 
-            print(f"performing {next_action.__name__}")
+            logger.info(f"performing {next_action.__name__}")
             await next_action()
 
         except (AssertionError, KeyError) as e:
-            print(f"Exception in open_and_close: {type(e).__name__}: {e}")
+            logger.warning(f"Exception in open_and_close: {type(e).__name__}: {e}")
             await asyncio.sleep(1)
 
 
 async def main():
     """main coroutine"""
+    logger.info("starting main")
     mqtt_client = connect_mqtt(DEVICE_NAME)
 
     coros = [
@@ -190,8 +201,8 @@ async def main():
     await asyncio.gather(*coros)
 
     # this should never be reached
-    print("main: rebooting")
-    await asyncio.sleep(1)
+    logger.warning("main ended, rebooting")
+    await asyncio.sleep(2)
     machine.reset()
 
 

@@ -12,6 +12,10 @@ import ntptime
 DATA_FILE = "sun_lut.csv"
 
 
+class MaxRetriesExceeded(Exception):
+    pass
+
+
 def extract_floats_from_file(
     target_date: str, file_path: str = DATA_FILE
 ) -> tuple[float, float]:
@@ -56,7 +60,7 @@ async def update_time(max_attempts=10, retry_delay=5):
         return
 
     # if we get here, we have exceeded the max attempts, raise an exception
-    raise RuntimeError("Failed to update time")
+    raise MaxRetriesExceeded("Failed to update time")
 
 
 def time_str():
