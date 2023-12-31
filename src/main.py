@@ -13,12 +13,11 @@ import logger
 import webserver
 import my_secrets as secrets
 
-from door import Door, STATE_CLOSED
+from door import Door
 
-
-DEVICE_NAME = "coop_door"
-STATUS_TOPIC = "/status/coop_door"
-COMMAND_TOPIC = "/coop_door/cmd"
+DEVICE_NAME = "eggcess"
+STATUS_TOPIC = f"/status/{DEVICE_NAME}"
+COMMAND_TOPIC = f"/{DEVICE_NAME}/cmd"
 
 
 T_START = time.time()
@@ -37,7 +36,6 @@ class Params:
     open_time: float | None = None
     close_time: float | None = None
     date: str | None = None
-    desired_state: str = STATE_CLOSED
 
 
 def connect_mqtt(client_id: str):
@@ -145,7 +143,7 @@ async def update_timing():
 
 async def open_and_close():
     """open and close the door based on schedule, sleeps until next event"""
-    # TODO: check desired state on startup
+
     while True:
         try:
             print("checking open and close times")
@@ -163,17 +161,26 @@ async def open_and_close():
             if current_hours < open_time:
                 # Before open time
                 sleep_duration = (open_time - current_hours) * 3600  # hours to seconds
+                action = door.close
                 next_action = door.open
+
             elif open_time <= current_hours < close_time:
                 # After open time and before close time
                 sleep_duration = (close_time - current_hours) * 3600  # hours to seconds
+                action = door.open
                 next_action = door.close
+
             else:
                 # After close time, schedule for next open time (next day)
                 sleep_duration = (
                     (24 - current_hours) + open_time
                 ) * 3600  # hours to seconds
+                action = door.close
                 next_action = door.open
+
+            # execute current action, this sets correct state in case of restart
+            logger.info(f"Current: {door.state}, performing {action.__name__}")
+            await action()
 
             sleep_hr = sleep_duration / 3600
             wake_time = timing.hours2str((current_hours + sleep_hr) % 24)
@@ -195,7 +202,7 @@ async def open_and_close():
 
 async def main():
     """main coroutine"""
-    logger.info("starting main")
+    logger.info("*** system start ***")
     mqtt_client = connect_mqtt(DEVICE_NAME)
 
     # start webserver
