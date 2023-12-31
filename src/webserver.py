@@ -5,15 +5,6 @@ from logger import LOG_FILE
 
 onboard = Pin(3, Pin.OUT, value=0)
 
-html = """<!DOCTYPE html>
-<html>
-    <head> <title>Eggcess</title> </head>
-    <body> <h1>Eggcess log</h1>
-        <pre>%s</pre>
-    </body>
-</html>
-"""
-
 wlan = network.WLAN(network.STA_IF)
 
 
@@ -29,15 +20,15 @@ async def serve_client(reader, writer):
     print("Client connected")
     request_line = await reader.readline()
     print("Request:", request_line)
-    # We are not interested in HTTP request headers, skip them
+    # Skip HTTP request headers
     while await reader.readline() != b"\r\n":
         pass
 
     log_contents = read_log()
 
-    response = html % log_contents
-    writer.write("HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n")
-    writer.write(response)
+    # Send plain text response
+    writer.write("HTTP/1.0 200 OK\r\nContent-type: text/plain\r\n\r\n")
+    writer.write(log_contents)
 
     await writer.drain()
     await writer.wait_closed()
