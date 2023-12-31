@@ -58,11 +58,13 @@ def command_callback(topic, msg):  # pylint: disable=unused-argument
     print(f"Received command: {msg}")
     command = msg.decode()
     if command == "open":
-        print("opening door by command")
+        logger.info("opening by command")
         asyncio.create_task(door.open())
     elif command == "close":
-        print("closing door by command")
+        logger.info("closing by command")
         asyncio.create_task(door.close())
+    else:
+        print("invalid command")
 
 
 async def mqtt_listener(client):
