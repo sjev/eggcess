@@ -175,8 +175,11 @@ async def open_and_close():
                 ) * 3600  # hours to seconds
                 next_action = door.open
 
+            sleep_hr = sleep_duration / 3600
+            wake_time = timing.hours2str((current_hours + sleep_hr) % 24)
+
             logger.info(
-                f"sleep_duration: {sleep_duration/3600} hours, next_action: {next_action.__name__}"
+                f"sleep_duration: {sleep_hr:.3f} hours till {wake_time}, next_action: {next_action.__name__}"
             )
 
             # wait until next event
