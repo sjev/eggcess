@@ -13,8 +13,8 @@ DRIVE_PINS = [Pin(p, Pin.OUT) for p in [2, 3, 4, 5]]
 
 
 MM_PER_REV = 19.6  # mm travel per revolution of the motor
-TRAVEL_MM = 340  # door travel distance in mm
-OPEN_EXTRA_MM = 5  # extra mm to open door, push against mechanical stop
+TRAVEL_MM = 330  # door travel distance in mm
+OPEN_EXTRA_MM = 10  # extra mm to open door, push against mechanical stop
 
 
 # door states
