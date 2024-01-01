@@ -19,6 +19,8 @@ class MaxRetriesExceeded(Exception):
 def extract_floats_from_file(
     target_date: str, file_path: str = DATA_FILE
 ) -> tuple[float, float]:
+    """extract the open and close times from the csv file for the target date"""
+    print(f"extracting floats from file {file_path} for date {target_date}")
     with open(file_path, "r") as file:
         for line in file:
             parts = line.strip().split(",")
@@ -81,17 +83,16 @@ def now() -> tuple[str, float]:
     """Return the current date as string and time as decimal hours"""
     rtc = machine.RTC()
     date = rtc.datetime()
-    year = date[0]
-    month = date[1]
-    day = date[2]
-    hour = date[4]
-    minute = date[5]
-    second = date[6]
+    year, month, day = date[0], date[1], date[2]
+    hour, minute, second = date[4], date[5], date[6]
 
     # check that time is not 2000-01-01
     assert year > 2000, "RTC not set"
 
-    return f"{year}-{month}-{day}", hour + minute / 60 + second / 3600
+    date_str = f"{year:04d}-{month:02d}-{day:02d}"
+    time_decimal = hour + minute / 60 + second / 3600
+
+    return date_str, time_decimal
 
 
 if __name__ == "__main__":
