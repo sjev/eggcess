@@ -28,6 +28,7 @@ led = machine.Pin(
 )  # use LED to indicate status. This is also one of drive pins
 
 door = Door()
+wdt = machine.WDT(timeout=300_000)  # 5 minutes (in milliseconds)
 
 
 class Params:
@@ -104,6 +105,11 @@ async def report_status(client, period_sec=5):
                 if Params.close_time
                 else None,
             }
+
+            # reset watchdog timer
+            wdt.feed()
+
+            # publish status
             client.publish(STATUS_TOPIC, json.dumps(msg))
 
             # publish state

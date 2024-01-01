@@ -47,4 +47,5 @@ while not success:
 
 
 # Start the web REPL
+print("Starting web REPL")
 webrepl.start()
