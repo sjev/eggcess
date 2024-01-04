@@ -17,6 +17,42 @@ that I've built, with the main goal to improve *reliability* ... and a good reas
 * web server,
 * compact electronics, can be built without soldering, just use jumper wires.
 
+
+## About the project
+
+
+I love building smart machines and writing software in Python. These skills come in handy in many cases, so I often use my professional skills for personal (home) automation projects. With some free time around Christmas, I got back to my pet project - a fully automatic, internet-connected chicken coop door. I started this project because it's the perfect blend of fun and learning.
+
+Time really does fly when you're having fun! This project evolved more than I anticipated, and I'm excited to share the outcome.
+
+Initially, I thought making an automatic chicken coop door would be simple. The basic movement was indeed easy, but ensuring long-term, glitch-free operation was a whole different ball game. I started this four years ago, combining woodwork, a DC motor, and an ESP8266 microcontroller, with optical sensors for door positioning. It worked, but not flawlessly.
+
+The first challenge I faced was the Micropython code on the ESP8266 freezing every few hours. After a lot of troubleshooting, I realized that the problem was out of my hands, likely an issue with Micropython or the chip's SDK. This led me to ESPHome, a tool that greatly simplifies firmware development. With ESPHome, you configure custom firmware using YAML, which made my coop door's firmware both robust and seamlessly integrated with my Homeassistant. However, ESPHome had its limitations too. It didn't offer complete programming freedom, and adding some 'nice-to-have' features, like automatic daylight saving time (DST) adjustments, turned out to be tricky.
+
+Then, the mechanics and sensors faced their own set of challenges, courtesy of my lovely chickens. They managed to obstruct and 'soil" the sensors in ways I hadn't foreseen. Plus, the high-torque motor occasionally damaged the mechanics.
+
+![](img/eggcess_09.jpg)
+*V1 mechanics*
+
+Key lessons learned:
+
+1. Remove the sensors – fewer parts, fewer problems. A mechanical stop now precisely positions the door.
+2. Replace the DC motor with a BJY48 stepper motor. Its quirks, like missing steps, prevent damage against stops. Its lower torque also means less chance of mechanical damage, albeit with slower door operation.
+3. Incorporate 3D printed parts for easy replacement and reproducibility - I might build a second one.
+
+I've recently implemented these improvements, switching to Micropython on an ESP32. Learning 3D CAD design in Onshape was a highlight, fulfilling a long-standing goal.
+
+![](img/eggcess_11.jpg)
+*new version*
+
+
+The project, now named "Eggcess," is documented and available on GitLab. While 'nerds with chickens' might be a niche audience, Eggcess's principles apply broadly, like in automatic curtain openers. If you're interested in fun, practical projects using Micropython and steppers, Eggcess could be a great starting point.
+
+
+
+------------------------------------------
+
+
 ## Bill of materials
 
 * [Seed Studio XIAO - ESP32-S3](https://www.tinytronics.nl/shop/nl/development-boards/microcontroller-boards/met-wi-fi/seeed-studio-xiao-esp32-s3) - 9 €
