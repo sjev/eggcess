@@ -46,7 +46,7 @@ I've recently implemented these improvements, switching to Micropython on an ESP
 *new version*
 
 
-The project, now named "Eggcess," is documented and available on GitLab. While 'nerds with chickens' might be a niche audience, Eggcess's principles apply broadly, like in automatic curtain openers. If you're interested in fun, practical projects using Micropython and steppers, Eggcess could be a great starting point.
+The project, now named "Eggcess," is documented and available on GitHub. While 'nerds with chickens' might be a niche audience, Eggcess's principles apply broadly, like in automatic curtain openers. If you're interested in fun, practical projects using Micropython and steppers, Eggcess could be a great starting point.
 
 
 
