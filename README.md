@@ -3,7 +3,7 @@
 This is a fun, useful and educative project that combines mechanical design,
 3D printing, electronics, IOT technologies and embedded programming.
 
-This is not "just another" chicken coop door opener. In fact, this is a 4th generation
+This is not "just another" chicken coop door opener. In fact, this is a second generation
 that I've built, with the main goal to improve *reliability* ... and a good reason to play with Micropython and learn something new.
 
 **Features**
