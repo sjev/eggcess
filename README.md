@@ -55,11 +55,11 @@ The project, now named "Eggcess," is documented and available on GitHub. While '
 
 ## Bill of materials
 
-* [Seed Studio XIAO - ESP32-S3](https://www.tinytronics.nl/shop/nl/development-boards/microcontroller-boards/met-wi-fi/seeed-studio-xiao-esp32-s3) - 9 €
+* [Seed Studio XIAO - ESP32-C3](https://www.tinytronics.nl/shop/nl/development-boards/microcontroller-boards/met-wi-fi/seeed-studio-xiao-esp32-c3) - 7 €
 * 2x 608ZZ ball bearing - 2x 1 €
 * [BYJ48 stepper + ULN2003 driver](https://www.tinytronics.nl/shop/nl/mechanica-en-actuatoren/motoren/stappenmotoren/stappen-motor-met-uln2003-motoraansturing) - 4 €
 
-Total of just 15 euro!
+Total of just 13 euro!
 
 ## Quick start
 
