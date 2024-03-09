@@ -165,6 +165,8 @@ async def daily_coro():
 async def open_and_close():
     """open and close the door based on schedule, sleeps until next event"""
 
+    await asyncio.sleep(5)  # wait for other coroutines to get open and close times
+
     while True:
         try:
             print("checking open and close times")
