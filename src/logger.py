@@ -40,4 +40,5 @@ def truncate_log(file=LOG_FILE, max_lines=300, keep_lines=50):
         log_to_file(f"Truncating log file to {keep_lines} lines", "INFO")
         with open(file, "w") as f:
             # Keep only the last 'keep_lines' lines
-            f.writelines(lines[-keep_lines:])
+            for line in lines[-keep_lines:]:
+                f.write(line)
