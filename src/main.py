@@ -1,4 +1,5 @@
 """ main module for coop_door """
+
 import asyncio
 import json
 import time
@@ -70,8 +71,11 @@ def command_callback(topic, msg):  # pylint: disable=unused-argument
 
 async def mqtt_listener(client):
     while True:
-        client.check_msg()  # Check for new MQTT messages
-        await asyncio.sleep(1)  # Pause briefly to avoid blocking
+        try:
+            client.check_msg()  # Check for new MQTT messages
+            await asyncio.sleep(1)  # Pause briefly to avoid blocking
+        except Exception as e:
+            logger.error(f"Exception in mqtt_listener: {type(e).__name__}: {e}")
 
 
 async def report_status(client, period_sec=5):
@@ -98,12 +102,12 @@ async def report_status(client, period_sec=5):
                 "door_state": door.state,
                 "date": Params.date,
                 "time": f"{utc_time[3]:02}:{utc_time[4]:02}:{utc_time[5]:02}",
-                "open": timing.hours2str(Params.open_time)
-                if Params.open_time
-                else None,
-                "close": timing.hours2str(Params.close_time)
-                if Params.close_time
-                else None,
+                "open": (
+                    timing.hours2str(Params.open_time) if Params.open_time else None
+                ),
+                "close": (
+                    timing.hours2str(Params.close_time) if Params.close_time else None
+                ),
             }
 
             # reset watchdog timer
@@ -120,15 +124,18 @@ async def report_status(client, period_sec=5):
 
             await asyncio.sleep(period_sec)
         except Exception as e:
-            print(f"Exception in report_status: {type(e).__name__}: {e}")
+            logger.error(f"Exception in report_status: {type(e).__name__}: {e}")
             await asyncio.sleep(1)
 
 
-async def update_timing():
+async def daily_coro():
     """update time and open and close times"""
 
     while True:
         try:
+            # truncate log if necessary
+            logger.truncate_log()
+
             # get open and close times
             date, hours = timing.now()
             Params.date = date
@@ -148,7 +155,7 @@ async def update_timing():
             await asyncio.sleep(delay_hours * 3600)
 
         except AssertionError as e:
-            print(f"Exception in update_timing: {type(e).__name__}: {e}")
+            logger.warning(f"Exception in update_timing: {type(e).__name__}: {e}")
             await asyncio.sleep(1)
         except timing.MaxRetriesExceeded as e:
             logger.error(f"{type(e).__name__}: {e}")
@@ -193,7 +200,7 @@ async def open_and_close():
                 next_action = door.open
 
             # execute current action, this sets correct state in case of restart
-            logger.info(f"Current: {door.state}, performing {action.__name__}")
+            print(f"Current: {door.state}, performing {action.__name__}")
             await action()
 
             sleep_hr = sleep_duration / 3600
@@ -225,7 +232,7 @@ async def main():
     coros = [
         report_status(mqtt_client),
         mqtt_listener(mqtt_client),
-        update_timing(),
+        daily_coro(),
         open_and_close(),
     ]
 

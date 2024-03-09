@@ -28,3 +28,16 @@ def warning(message):
 def error(message):
     """log error message"""
     log_to_file(message, "ERROR")
+
+
+def truncate_log(file=LOG_FILE, max_lines=300, keep_lines=50):
+    """Truncate the log file to keep only the last 'keep_lines' lines if it exceeds 'max_lines' lines."""
+    with open(file, "r") as f:
+        lines = f.readlines()
+
+    line_count = len(lines)
+    if line_count > max_lines:
+        log_to_file(f"Truncating log file to {keep_lines} lines", "INFO")
+        with open(file, "w") as f:
+            # Keep only the last 'keep_lines' lines
+            f.writelines(lines[-keep_lines:])
