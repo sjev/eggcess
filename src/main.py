@@ -6,6 +6,7 @@ import time
 
 import machine
 import network
+import gc
 from umqtt.robust import MQTTClient
 
 
@@ -98,6 +99,7 @@ async def report_status(client, period_sec=5):
                 "name": DEVICE_NAME,
                 "ip": wifi.ifconfig()[0],
                 "uptime_h": round(uptime / 3600, 3),
+                "mem_free": gc.mem_free(),
                 "rssi": wifi.status("rssi"),
                 "door_state": door.state,
                 "date": Params.date,
@@ -151,6 +153,9 @@ async def daily_coro():
             logger.info(
                 f"time updated, open: {timing.hours2str(Params.open_time)}, close: {timing.hours2str(Params.close_time)}"
             )
+
+            # collect garbage
+            gc.collect()
 
             await asyncio.sleep(delay_hours * 3600)
 
@@ -229,7 +234,9 @@ async def main():
     mqtt_client = connect_mqtt(DEVICE_NAME)
 
     # start webserver
-    asyncio.create_task(asyncio.start_server(webserver.serve_client, "0.0.0.0", 80))
+    server_task = asyncio.create_task(
+        asyncio.start_server(webserver.serve_client, "0.0.0.0", 80)
+    )
 
     coros = [
         report_status(mqtt_client),
