@@ -17,7 +17,7 @@ import my_secrets as secrets
 
 from door import Door
 
-__version__ = "2024.05.03"
+__version__ = "1.1.1"
 
 
 DEVICE_NAME = "eggcess"
@@ -36,7 +36,7 @@ led = machine.Pin(
 )  # use LED to indicate status. This is also one of drive pins
 
 door = Door()
-# wdt = machine.WDT(timeout=300_000)  # 5 minutes (in milliseconds)
+wdt = machine.WDT(timeout=300_000)  # 5 minutes (in milliseconds)
 
 
 class Params:
@@ -68,10 +68,10 @@ def command_callback(topic, msg):  # pylint: disable=unused-argument
     command = msg.decode()
     if command == "open":
         logger.info("opening by command")
-        asyncio.create_task(door.open())
+        door.open()
     elif command == "close":
         logger.info("closing by command")
-        asyncio.create_task(door.close())
+        door.close()
     else:
         print("invalid command")
 
@@ -141,6 +141,9 @@ async def report_status(client, period_sec=5):
             # Print status to console, to avoid ampy timeout
             print(msg)
 
+            # collect garbage (patch memory leak)
+            gc.collect()
+
             await asyncio.sleep(period_sec)
         except Exception as e:
             logger.error(f"Exception in report_status: {type(e).__name__}: {e}")
@@ -159,15 +162,9 @@ async def report_status_min(period_sec=5):
             await asyncio.sleep(0.01)
             led.value(0)
 
-            # Update minimal status information
-            utc_time = time.localtime()
-            uptime = time.time() - T_START
-
             # Print minimal status to console
             print(
                 {
-                    "time": f"{utc_time[3]:02}:{utc_time[4]:02}:{utc_time[5]:02}",
-                    "uptime_h": round(uptime / 3600, 3),
                     "mem_free": gc.mem_free(),
                     "rssi": wifi.status("rssi"),
                 }
@@ -285,13 +282,14 @@ async def main():
     mqtt_client = connect_mqtt(DEVICE_NAME)
 
     # start webserver
-    server_task = asyncio.create_task(
-        asyncio.start_server(webserver.serve_client, "0.0.0.0", 80)
+    tasks = []
+    tasks.append(
+        asyncio.create_task(asyncio.start_server(webserver.serve_client, "0.0.0.0", 80))
     )
 
     coros = [
-        # report_status(mqtt_client),
-        report_status_min(),
+        report_status(mqtt_client),
+        # report_status_min(),
         mqtt_listener(mqtt_client),
         daily_coro(),
         open_and_close(),
