@@ -17,6 +17,9 @@ import my_secrets as secrets
 
 from door import Door
 
+__version__ = "2024.05.03"
+
+
 DEVICE_NAME = "eggcess"
 STATUS_TOPIC = f"/status/{DEVICE_NAME}"
 COMMAND_TOPIC = f"/{DEVICE_NAME}/cmd"
@@ -25,12 +28,15 @@ STATE_TOPIC = f"/{DEVICE_NAME}/state"
 
 T_START = time.time()
 
+logger.info(f"*** system start  v{__version__}***")
+
+
 led = machine.Pin(
     2, machine.Pin.OUT
 )  # use LED to indicate status. This is also one of drive pins
 
 door = Door()
-wdt = machine.WDT(timeout=300_000)  # 5 minutes (in milliseconds)
+# wdt = machine.WDT(timeout=300_000)  # 5 minutes (in milliseconds)
 
 
 class Params:
@@ -82,49 +88,94 @@ async def mqtt_listener(client):
 async def report_status(client, period_sec=5):
     """report status"""
 
+    # Pre-initialize the message dictionary with static values
+    msg = {
+        "name": DEVICE_NAME,
+        "door_state": door.state,  # assuming door.state is static, remove if it changes
+    }
+
+    wifi = network.WLAN(network.STA_IF)
+
     while True:
         try:
-            # flash led
+            # Flash LED
+            led.value(1)
+            await asyncio.sleep(0.01)
+            led.value(0)
+            led.value(0)
+
+            # Update dynamic values
+            utc_time = time.localtime()
+            uptime = time.time() - T_START
+
+            msg.update(
+                {
+                    "ip": wifi.ifconfig()[0],
+                    "uptime_h": round(uptime / 3600, 3),
+                    "mem_free": gc.mem_free(),
+                    "rssi": wifi.status("rssi"),
+                    "date": Params.date,
+                    "time": f"{utc_time[3]:02}:{utc_time[4]:02}:{utc_time[5]:02}",
+                    "open": (
+                        timing.hours2str(Params.open_time) if Params.open_time else None
+                    ),
+                    "close": (
+                        timing.hours2str(Params.close_time)
+                        if Params.close_time
+                        else None
+                    ),
+                    "door_state": door.state,  # update door state in case it changes
+                }
+            )
+
+            # Reset watchdog timer
+            wdt.feed()
+
+            # Optionally serialize and publish status
+            json_status = json.dumps(msg)
+            client.publish(STATUS_TOPIC, json_status)
+
+            # Publish state
+            client.publish(STATE_TOPIC, door.state)
+
+            # Print status to console, to avoid ampy timeout
+            print(msg)
+
+            await asyncio.sleep(period_sec)
+        except Exception as e:
+            logger.error(f"Exception in report_status: {type(e).__name__}: {e}")
+            await asyncio.sleep(1)
+
+
+async def report_status_min(period_sec=5):
+    """minimal reporting, hopefully without memory leak"""
+
+    wifi = network.WLAN(network.STA_IF)
+
+    while True:
+        try:
+            # Flash LED
             led.value(1)
             await asyncio.sleep(0.01)
             led.value(0)
 
-            wifi = network.WLAN(network.STA_IF)
-
+            # Update minimal status information
             utc_time = time.localtime()
-
             uptime = time.time() - T_START
 
-            msg = {
-                "name": DEVICE_NAME,
-                "ip": wifi.ifconfig()[0],
-                "uptime_h": round(uptime / 3600, 3),
-                "mem_free": gc.mem_free(),
-                "rssi": wifi.status("rssi"),
-                "door_state": door.state,
-                "date": Params.date,
-                "time": f"{utc_time[3]:02}:{utc_time[4]:02}:{utc_time[5]:02}",
-                "open": (
-                    timing.hours2str(Params.open_time) if Params.open_time else None
-                ),
-                "close": (
-                    timing.hours2str(Params.close_time) if Params.close_time else None
-                ),
-            }
+            # Print minimal status to console
+            print(
+                {
+                    "time": f"{utc_time[3]:02}:{utc_time[4]:02}:{utc_time[5]:02}",
+                    "uptime_h": round(uptime / 3600, 3),
+                    "mem_free": gc.mem_free(),
+                    "rssi": wifi.status("rssi"),
+                }
+            )
 
-            # reset watchdog timer
-            wdt.feed()
-
-            # publish status
-            client.publish(STATUS_TOPIC, json.dumps(msg))
-
-            # publish state
-            client.publish(STATE_TOPIC, door.state)
-
-            # print status to console, to avoid ampy timeout
-            print(f"{msg['time']}, {msg['door_state']}")
-
+            # Pause before next update
             await asyncio.sleep(period_sec)
+
         except Exception as e:
             logger.error(f"Exception in report_status: {type(e).__name__}: {e}")
             await asyncio.sleep(1)
@@ -208,7 +259,7 @@ async def open_and_close():
 
             # execute current action, this sets correct state in case of restart
             print(f"Current: {door.state}, performing {action.__name__}")
-            await action()
+            action()
 
             sleep_hr = sleep_duration / 3600
             wake_time = timing.hours2str((current_hours + sleep_hr) % 24)
@@ -230,7 +281,7 @@ async def open_and_close():
 
 async def main():
     """main coroutine"""
-    logger.info("*** system start ***")
+
     mqtt_client = connect_mqtt(DEVICE_NAME)
 
     # start webserver
@@ -239,7 +290,8 @@ async def main():
     )
 
     coros = [
-        report_status(mqtt_client),
+        # report_status(mqtt_client),
+        report_status_min(),
         mqtt_listener(mqtt_client),
         daily_coro(),
         open_and_close(),

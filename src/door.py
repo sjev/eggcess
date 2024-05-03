@@ -1,11 +1,12 @@
 """ class to manage the door """
+
 from machine import Pin
 import asyncio
 import json
 
 from timing import time_str
 from uln2003 import Stepper, FULL_ROTATION
-
+import logger
 
 STATE_FILE = "door_state.json"
 
@@ -79,10 +80,10 @@ class Door:
 
         self._state = State.load()
         self._save_state = save_state  # save state to file?
-        print(f"door state: {self._state}")
+        logger.info(f"door state: {self._state}")
 
         if self.state in [STATE_UNKNOWN, STATE_MOVING]:
-            # reset door
+            logger.info("resetting door")
             if auto_reset:
                 self.reset()
 
@@ -101,9 +102,9 @@ class Door:
     def reset(self):
         """fully open the door, aginst mechanical stop"""
         print("resetting door")
-        self.open()
+        self.open(force=True)
 
-    async def move(self, direction: int, distance_mm: float):
+    def move(self, direction: int, distance_mm: float):
         """move the door in the specified direction, provide feedback after each revolution"""
         # convert mm to revolutions
         revolutions = distance_mm / MM_PER_REV
@@ -112,7 +113,6 @@ class Door:
         for _ in range(int(revolutions)):
             self._stepper.step(FULL_ROTATION, direction)
             print("revolutions: ", _ + 1)
-            await asyncio.sleep(0.01)
 
         # remainder
         remainder = revolutions - int(revolutions)
@@ -120,36 +120,36 @@ class Door:
             self._stepper.step(int(remainder * FULL_ROTATION), direction)
             print("remainder: ", remainder)
 
-    async def open(self, distance_mm: float = TRAVEL_MM + OPEN_EXTRA_MM):
+    def open(self, distance_mm: float = TRAVEL_MM + OPEN_EXTRA_MM, force: bool = False):
         """open the door"""
         print("opening door")
-        if self.state not in [STATE_CLOSED, STATE_UNKNOWN]:
+        if self.state not in [STATE_CLOSED, STATE_UNKNOWN] and not force:
             print(f"cannot open door from state {self.state}")
             return
 
         self.state = STATE_MOVING
-        await self.move(DIRECTION_OPEN, distance_mm)
+        self.move(DIRECTION_OPEN, distance_mm)
         self.state = STATE_OPEN
 
-    async def close(self, distance_mm: float = TRAVEL_MM):
+    def close(self, distance_mm: float = TRAVEL_MM):
         """close the door"""
         print("closing door")
         if self.state not in [STATE_OPEN, STATE_UNKNOWN]:
             print(f"cannot close door from state {self.state}")
             return
         self.state = STATE_MOVING
-        await self.move(DIRECTION_CLOSE, distance_mm)
+        self.move(DIRECTION_CLOSE, distance_mm)
         self.state = STATE_CLOSED
 
 
-async def test():
+def test():
     """test the door, import door and run door.test() in repl"""
     door = Door(save_state=False)
     distance_mm = 100
 
-    await door.open(distance_mm)
+    door.open(distance_mm)
     asyncio.sleep(2)
-    await door.close(distance_mm)
+    door.close(distance_mm)
     asyncio.sleep(2)
 
 
