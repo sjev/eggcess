@@ -31,6 +31,7 @@ async def serve_client(reader, writer):
     writer.write(log_contents)
 
     await writer.drain()
+    writer.close()
     await writer.wait_closed()
     print("Client disconnected")
 
