@@ -17,7 +17,7 @@ import my_secrets as secrets
 
 from door import Door
 
-__version__ = "1.1.1"
+__version__ = "1.1.2"
 
 
 DEVICE_NAME = "eggcess"
@@ -269,7 +269,7 @@ async def open_and_close():
             await asyncio.sleep(sleep_duration)
 
             logger.info(f"performing {next_action.__name__}")
-            await next_action()
+            next_action()
 
         except (AssertionError, KeyError) as e:
             logger.warning(f"Exception in open_and_close: {type(e).__name__}: {e}")
