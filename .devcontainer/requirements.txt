@@ -1,5 +1,6 @@
 autoflake
 black
+circup
 bump2version
 circuitpython-stubs
 coloredlogs
