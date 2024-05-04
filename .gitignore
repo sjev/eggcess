@@ -3,3 +3,4 @@ src/my_secrets.py
 __pycache__/
 *.py[cod]
 *.ipynb_checkpoints
+tests/log.txt
