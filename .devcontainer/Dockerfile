@@ -1,7 +1,9 @@
-FROM python:3.11
+
+FROM registry.gitlab.com/roxautomation/images/circuitpython
 ARG USERNAME=dev
 ARG UID=1000
 ARG GID=1000
+ARG PROJECT=rox-ecu
 
 
 # Create the user
@@ -25,8 +27,13 @@ RUN apt-get install -y \
     git \
     make \
     wget \
-    picocom \
-    && rm -rf /var/lib/apt/lists/*
+    libusb-1.0-0 \
+    net-tools \
+    iproute2 \
+    can-utils
+
+# cleanup
+RUN rm -rf /var/lib/apt/lists/*
 
 # set locale
 RUN export LC_ALL=en_US.UTF-8
@@ -35,19 +42,17 @@ RUN locale-gen en_US.UTF-8
 
 RUN pip install --upgrade pip
 
+# install user packages
+COPY requirements.txt requirements.txt
+RUN pip3 install -r requirements.txt && rm requirements.txt
+
 
 USER ${USERNAME}
-RUN echo 'export PS1="🐳  \[\033[1;36m\]'"micropython"' \[\e[33m\]\W\[\e[m\] \[\033[1;36m\]# \[\033[0m\]"' >> ~/.bashrc
-
-# add alias
-RUN echo 'alias repl="picocom $AMPY_PORT -b 115200"' >> ~/.bashrc
-
-
+RUN echo 'export PS1="🐳  \[\033[1;36m\]'"${PROJECT}"' \[\e[33m\]\W\[\e[m\] \[\033[1;36m\]# \[\033[0m\]"' >> ~/.bashrc
 
 ENV PATH="${PATH}:/home/${USERNAME}/.local/bin"
 
 WORKDIR /home/${USERNAME}
-
 
 
 # setup folders for saving vscode extensions
@@ -56,16 +61,11 @@ RUN mkdir -p /home/$USERNAME/.vscode-server/extensions \
     && chown -R $USERNAME \
     /home/$USERNAME/.vscode-server
 
-# install user packages
-COPY requirements.txt requirements.txt
-RUN pip3 install -r requirements.txt && rm requirements.txt
 
-# get stubs
-RUN pip install --upgrade micropy-cli
-RUN micropy stubs add micropython-esp32-stubs
+# build timestamp
+USER root
+RUN echo ${PROJECT} >> /build_date.txt && \
+    date >> /build_date.txt
 
-# extend pythonpath
-ENV PYTHONPATH="/workspaces/eggcess/src"
-
-
-WORKDIR /workspaces
+USER ${USERNAME}
+WORKDIR /home/${USERNAME}

@@ -15,7 +15,8 @@
     "AMPY_PORT": "/dev/ttyACM0"
   },
 
-  "runArgs": ["--privileged"],
+  "runArgs": ["--network", "host", "--privileged"],
+  "postCreateCommand": ".devcontainer/init_container.sh",
   // // Configure tool-specific properties.
   "customizations": {
     "vscode": {
