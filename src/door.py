@@ -141,6 +141,21 @@ class Door:
         self.move(DIRECTION_CLOSE, distance_mm)
         self.state = STATE_CLOSED
 
+    def automate(self, time_now: float, time_open: float, time_close: float) -> float:
+        """opens or closes the door based on the time of day (decimal hours). Returns sleep duration in seconds until next event"""
+        if time_now < time_open:
+            # Before open time
+            self.close()
+            return (time_open - time_now) * 3600
+        elif time_open <= time_now < time_close:
+            # After open time and before close time
+            self.open()
+            return (time_close - time_now) * 3600
+        else:
+            # After close time, schedule for next open time (next day)
+            self.close()
+            return (24 - time_now + time_open) * 3600
+
 
 def test():
     """test the door, import door and run door.test() in repl"""
