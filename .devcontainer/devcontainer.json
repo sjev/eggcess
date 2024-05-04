@@ -12,7 +12,7 @@
   ],
   // environment variables
   "containerEnv": {
-    "AMPY_PORT": "/dev/ttyACM0"
+    "PYTHONPATH": "/workspaces/eggcess/src"
   },
 
   "runArgs": ["--network", "host", "--privileged"],
