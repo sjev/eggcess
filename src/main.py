@@ -17,7 +17,7 @@ import my_secrets as secrets
 
 from door import Door
 
-__version__ = "1.3.0_dev"
+__version__ = "1.3.0"
 
 
 DEVICE_NAME = "eggcess"
@@ -258,11 +258,11 @@ async def main():
     )
 
     coros = [
-        # report_status(mqtt_client),
-        report_status_min(),
+        report_status(mqtt_client),
+        # report_status_min(),
         mqtt_listener(mqtt_client),
         daily_coro(),
-        # open_and_close(),
+        open_and_close(),
     ]
 
     await asyncio.gather(*coros)
