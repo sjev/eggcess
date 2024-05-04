@@ -17,7 +17,7 @@ import my_secrets as secrets
 
 from door import Door
 
-__version__ = "1.1.2"
+__version__ = "1.3.0"
 
 
 DEVICE_NAME = "eggcess"
@@ -226,52 +226,22 @@ async def open_and_close():
             # get current time
             _, current_hours = timing.now()
 
-            # get open and close times
-            open_time = Params.open_time
-            close_time = Params.close_time
+            if Params.open_time is None or Params.close_time is None:
+                raise ValueError("Open or close time is not set.")
 
-            assert open_time is not None, "open_time is None"
-            assert close_time is not None, "close_time is None"
-
-            # Calculate sleep duration until the next event
-            if current_hours < open_time:
-                # Before open time
-                sleep_duration = (open_time - current_hours) * 3600  # hours to seconds
-                action = door.close
-                next_action = door.open
-
-            elif open_time <= current_hours < close_time:
-                # After open time and before close time
-                sleep_duration = (close_time - current_hours) * 3600  # hours to seconds
-                action = door.open
-                next_action = door.close
-
-            else:
-                # After close time, schedule for next open time (next day)
-                sleep_duration = (
-                    (24 - current_hours) + open_time
-                ) * 3600  # hours to seconds
-                action = door.close
-                next_action = door.open
-
-            # execute current action, this sets correct state in case of restart
-            print(f"Current: {door.state}, performing {action.__name__}")
-            action()
-
+            # perform action and get sleep duration
+            sleep_duration = door.automate(
+                current_hours, Params.open_time, Params.close_time
+            )
             sleep_hr = sleep_duration / 3600
             wake_time = timing.hours2str((current_hours + sleep_hr) % 24)
 
-            logger.info(
-                f"sleep_duration: {sleep_hr:.3f} hours till {wake_time}, next_action: {next_action.__name__}"
-            )
+            logger.info(f"sleep_duration: {sleep_hr:.3f} hours till {wake_time}")
 
             # wait until next event
             await asyncio.sleep(sleep_duration)
 
-            logger.info(f"performing {next_action.__name__}")
-            next_action()
-
-        except (AssertionError, KeyError) as e:
+        except ValueError as e:
             logger.warning(f"Exception in open_and_close: {type(e).__name__}: {e}")
             await asyncio.sleep(1)
 

@@ -16,6 +16,7 @@ DRIVE_PINS = [Pin(p, Pin.OUT) for p in [2, 3, 4, 5]]
 MM_PER_REV = 19.6  # mm travel per revolution of the motor
 TRAVEL_MM = 330  # door travel distance in mm
 OPEN_EXTRA_MM = 10  # extra mm to open door, push against mechanical stop
+EXTRA_DELAY = 5  # time in seconds to add to open/close time to make sure we are past the decision boundary.
 
 
 # door states
@@ -85,7 +86,7 @@ class Door:
         if self.state in [STATE_UNKNOWN, STATE_MOVING]:
             logger.info("resetting door")
             if auto_reset:
-                self.reset()
+                self.open()
 
     @property
     def state(self) -> str:
@@ -98,11 +99,6 @@ class Door:
         self._state = State(state)
         if self._save_state:
             self._state.save()
-
-    def reset(self):
-        """fully open the door, aginst mechanical stop"""
-        print("resetting door")
-        self.open(force=True)
 
     def move(self, direction: int, distance_mm: float):
         """move the door in the specified direction, provide feedback after each revolution"""
@@ -120,26 +116,44 @@ class Door:
             self._stepper.step(int(remainder * FULL_ROTATION), direction)
             print("remainder: ", remainder)
 
-    def open(self, distance_mm: float = TRAVEL_MM + OPEN_EXTRA_MM, force: bool = False):
+    def open(self, distance_mm: float = TRAVEL_MM + OPEN_EXTRA_MM):
         """open the door"""
-        print("opening door")
-        if self.state not in [STATE_CLOSED, STATE_UNKNOWN] and not force:
-            print(f"cannot open door from state {self.state}")
+        logger.info("opening door")
+        if self.state == STATE_OPEN:
+            logger.info("door is already open")
             return
 
         self.state = STATE_MOVING
         self.move(DIRECTION_OPEN, distance_mm)
         self.state = STATE_OPEN
+        logger.info("door is open")
 
     def close(self, distance_mm: float = TRAVEL_MM):
         """close the door"""
-        print("closing door")
-        if self.state not in [STATE_OPEN, STATE_UNKNOWN]:
-            print(f"cannot close door from state {self.state}")
+        logger.info("closing door")
+        if self.state == STATE_CLOSED:
+            logger.info("door is already closed")
             return
+
         self.state = STATE_MOVING
         self.move(DIRECTION_CLOSE, distance_mm)
         self.state = STATE_CLOSED
+        logger.info("door is closed")
+
+    def automate(self, time_now: float, time_open: float, time_close: float) -> float:
+        """opens or closes the door based on the time of day (decimal hours). Returns sleep duration in seconds until next event"""
+        if time_now < time_open:
+            # Before open time
+            self.close()
+            return (time_open - time_now) * 3600 + EXTRA_DELAY
+        elif time_open <= time_now < time_close:
+            # After open time and before close time
+            self.open()
+            return (time_close - time_now) * 3600 + EXTRA_DELAY
+        else:
+            # After close time, schedule for next open time (next day)
+            self.close()
+            return (24 - time_now + time_open) * 3600 + EXTRA_DELAY
 
 
 def test():

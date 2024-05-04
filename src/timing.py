@@ -4,6 +4,7 @@ time-related functions
 * update RTC
 * read csv and return open and close times for today
 """
+
 import asyncio
 import utime as time
 import machine
@@ -75,8 +76,20 @@ def time_str():
 
 
 def hours2str(hours: float) -> str:
-    """Convert decimal hours to string"""
-    return f"{int(hours):02}:{int((hours % 1) * 60):02}"
+    """Convert decimal hours to string, including hours, minutes, and seconds."""
+    # Extract whole hours and remaining fractional hour
+    whole_hours = int(hours)
+    fractional_hours = hours % 1
+
+    # Convert fractional hour to minutes
+    minutes = int(fractional_hours * 60)
+    # Calculate remaining fractional minutes
+    fractional_minutes = (fractional_hours * 60) % 1
+
+    # Convert remaining fractional minutes to seconds
+    seconds = int(fractional_minutes * 60)
+
+    return f"{whole_hours:02}:{minutes:02}:{seconds:02}"
 
 
 def now() -> tuple[str, float]:
