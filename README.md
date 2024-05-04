@@ -64,10 +64,19 @@ Total of just 13 euro!
 ## Quick start
 
 1. Start up VSCode devcontainer. The `Dockerfile` contains all the development goodies,
-like micropython stubs. You may need to set `AMPY_PORT` in `devcontainer.json`
+like  stubs.
 2. generate lookup table for open and close times using `calculations/calculate_lut.ipynb`
 3. create `src/my_secrets.py` (see example file) and set correct ssid, password etc.
-4. use `invoke` to upload code to the device. (`invoke upload-src`)
+
+
+## Uploading files
+
+* bundles can be managed with `circup` over wifi. use with `--host` and `--password` option.
+
+
+
+
+-------------------------------------------------------
 
 ## Homeassistant integration
 
