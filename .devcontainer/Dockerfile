@@ -3,7 +3,7 @@ FROM registry.gitlab.com/roxautomation/images/circuitpython
 ARG USERNAME=dev
 ARG UID=1000
 ARG GID=1000
-ARG PROJECT=rox-ecu
+ARG PROJECT=eggcess
 
 
 # Create the user
@@ -29,8 +29,7 @@ RUN apt-get install -y \
     wget \
     libusb-1.0-0 \
     net-tools \
-    iproute2 \
-    can-utils
+    iproute2
 
 # cleanup
 RUN rm -rf /var/lib/apt/lists/*
