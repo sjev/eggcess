@@ -12,7 +12,8 @@
   ],
   // environment variables
   "containerEnv": {
-    "PYTHONPATH": "/workspaces/eggcess/src"
+    "PYTHONPATH": "/workspaces/eggcess/src",
+    "DEVICE": "192.168.1.86"
   },
 
   "runArgs": ["--network", "host", "--privileged"],

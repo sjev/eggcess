@@ -6,9 +6,11 @@ time-related functions
 """
 
 import asyncio
-import utime as time
-import machine
-import ntptime
+import time
+import adafruit_ntp
+import rtc
+import socketpool
+import wifi
 
 DATA_FILE = "sun_lut.csv"
 
@@ -34,32 +36,28 @@ def extract_floats_from_file(
     raise ValueError("Date not found in file")
 
 
-async def update_time(max_attempts=10, retry_delay=5):
+def update_time(max_attempts=10, retry_delay=5):
     """update the RTC time from NTP server"""
+
+    pool = socketpool.SocketPool(wifi.radio)
+    ntp = adafruit_ntp.NTP(pool, tz_offset=0)
 
     attempts = 0
 
     while attempts < max_attempts:
         print(f"Updating time attempt {attempts + 1}")
         try:
-            # Create an RTC object
-            rtc = machine.RTC()
-
-            # Sync time with NTP server
-            ntptime.settime()
-
-            # The time is set in UTC by default
-            utc_time = rtc.datetime()
+            rtc.RTC().datetime = ntp.datetime
 
             # Print the UTC time
-            print("UTC Time:", utc_time)
+            print("UTC Time:", time.localtime())
 
             attempts = 0  # reset attempts
         except Exception as e:
             attempts += 1
             print(f"Error updating time:  {type(e).__name__}: {e}")
             print(f"Sleeping for {retry_delay} seconds")
-            await asyncio.sleep(retry_delay)
+            time.sleep(retry_delay)
         return
 
     # if we get here, we have exceeded the max attempts, raise an exception
@@ -94,8 +92,8 @@ def hours2str(hours: float) -> str:
 
 def now() -> tuple[str, float]:
     """Return the current date as string and time as decimal hours"""
-    rtc = machine.RTC()
-    date = rtc.datetime()
+    clk = rtc.RTC()
+    date = clk.datetime
     year, month, day = date[0], date[1], date[2]
     hour, minute, second = date[4], date[5], date[6]
 
@@ -108,14 +106,18 @@ def now() -> tuple[str, float]:
     return date_str, time_decimal
 
 
-if __name__ == "__main__":
+# ------------------------------ testing --------------------------------
+def test() -> None:
+    """basic testing function"""
+    print("Running test function")
+    update_time()
     today, now_time = now()
     print(f"Today: {today}, Now: {now_time}")
 
     test_dates = [today, "2030-02-27"]
     for test_date in test_dates:
         print(f"Testing date: {test_date}")
-        t_start = time.ticks_ms()
+        t_start = time.monotonic()
         open_time, close_time = extract_floats_from_file(test_date)
-        print(f"Time to read file: {time.ticks_ms() - t_start:.3f} ms")
+        print(f"Time to read file: {time.monotonic() - t_start:.3f} s")
         print(f"Open time: {open_time}, Close time: {close_time}")

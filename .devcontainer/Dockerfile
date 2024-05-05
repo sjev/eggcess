@@ -29,7 +29,8 @@ RUN apt-get install -y \
     wget \
     libusb-1.0-0 \
     net-tools \
-    iproute2
+    iproute2 \
+    iputils-ping
 
 # cleanup
 RUN rm -rf /var/lib/apt/lists/*
@@ -68,3 +69,7 @@ RUN echo ${PROJECT} >> /build_date.txt && \
 
 USER ${USERNAME}
 WORKDIR /home/${USERNAME}
+
+
+# get adafruit libraries
+RUN circup show
