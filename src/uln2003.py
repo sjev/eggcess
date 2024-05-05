@@ -24,13 +24,6 @@ HALF_STEP = [
     [HIGH, LOW, LOW, HIGH],
 ]
 
-FULL_STEP = [
-    [HIGH, LOW, HIGH, LOW],
-    [LOW, HIGH, HIGH, LOW],
-    [LOW, HIGH, LOW, HIGH],
-    [HIGH, LOW, LOW, HIGH],
-]
-
 
 class Stepper:
     def __init__(self, pins, delay=STEP_DELAY_US):
