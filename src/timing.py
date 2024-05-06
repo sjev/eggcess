@@ -93,14 +93,12 @@ def now() -> tuple[str, float]:
     """Return the current date as string and time as decimal hours"""
     clk = rtc.RTC()
     date = clk.datetime
-    year, month, day = date[0], date[1], date[2]
-    hour, minute, second = date[4], date[5], date[6]
 
     # check that time is not 2000-01-01
-    assert year > 2000, "RTC not set"
+    assert date.tm_year > 2000, "RTC not set"
 
-    date_str = f"{year:04d}-{month:02d}-{day:02d}"
-    time_decimal = hour + minute / 60 + second / 3600
+    date_str = f"{date.tm_year:04d}-{date.tm_mon:02d}-{date.tm_mday:02d}"
+    time_decimal = date.tm_hour + date.tm_min / 60 + date.tm_sec / 3600
 
     return date_str, time_decimal
 
