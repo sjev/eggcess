@@ -1,19 +1,18 @@
 import os
 import sys
 from pathlib import Path
+from fnmatch import fnmatch
 
 import requests
 from invoke import task
 
 
 def get_secrets() -> dict[str, str]:
-    """get secrets from environment variables"""
-
+    """Get secrets from environment variables."""
     keys = ["DEVICE_IP", "DEVICE_PASS"]
     secrets = {key: os.getenv(key) for key in keys}
-    print(secrets)
 
-    # check that all secrets are present
+    # Check that all secrets are present
     for k, v in secrets.items():
         if v is None:
             sys.exit(f"Error: Missing secret for {k}")
@@ -21,18 +20,37 @@ def get_secrets() -> dict[str, str]:
     return {k: v for k, v in secrets.items() if k is not None and v is not None}
 
 
+def read_syncignore():
+    """Read the .syncignore file and return a list of patterns to ignore."""
+    ignore_file = Path(".syncignore")
+    if ignore_file.exists():
+        with ignore_file.open("r") as file:
+            # Read each line, strip whitespace, ignore empty and commented lines
+            return [
+                line.strip()
+                for line in file
+                if line.strip() and not line.startswith("#")
+            ]
+    return []
+
+
 @task
 def push(ctx, src="src/", dest="/"):
     """
-    Push files from the local 'src' directory to the device.
+    Push files from the local 'src' directory to the device, ignoring hidden files and .syncignore patterns.
     """
     secrets = get_secrets()
     base_url = f"http://{secrets['DEVICE_IP']}/fs/"
     auth = ("", secrets["DEVICE_PASS"])
-
-    import os
+    ignore_patterns = read_syncignore()
 
     for root, dirs, files in os.walk(src):
+        files = [
+            f
+            for f in files
+            if not f.startswith(".")
+            and all(not fnmatch(f, pat) for pat in ignore_patterns)
+        ]
         for filename in files:
             local_path = os.path.join(root, filename)
             relative_path = os.path.relpath(local_path, src)
@@ -50,11 +68,12 @@ def push(ctx, src="src/", dest="/"):
 @task
 def pull(ctx, dest="src/", src="/"):
     """
-    Pull files from the device to the local 'dest' directory.
+    Pull files from the device to the local 'dest' directory, ignoring hidden files and .syncignore patterns.
     """
     secrets = get_secrets()
     base_url = f"http://{secrets['DEVICE_IP']}/fs/"
     auth = ("", secrets["DEVICE_PASS"])
+    ignore_patterns = read_syncignore()
 
     response = requests.get(
         f"{base_url}{src}", auth=auth, headers={"Accept": "application/json"}
@@ -63,7 +82,13 @@ def pull(ctx, dest="src/", src="/"):
         dir_info = response.json()
         if "files" in dir_info:
             for file_info in dir_info["files"]:
-                if not file_info["directory"]:  # Download only files, not directories
+                if (
+                    not file_info["directory"]
+                    and not file_info["name"].startswith(".")
+                    and all(
+                        not fnmatch(file_info["name"], pat) for pat in ignore_patterns
+                    )
+                ):
                     device_path = f"{src}{file_info['name']}"
                     local_path = os.path.join(dest, file_info["name"])
                     response = requests.get(f"{base_url}{device_path}", auth=auth)
