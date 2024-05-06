@@ -1,6 +1,6 @@
 """ class to manage the door """
 
-from machine import Pin
+import board
 import asyncio
 import json
 
@@ -10,7 +10,7 @@ import logger
 
 STATE_FILE = "door_state.json"
 
-DRIVE_PINS = [Pin(p, Pin.OUT) for p in [2, 3, 4, 5]]
+DRIVE_PINS = [board.D2, board.D3, board.D4, board.D5]  # type: ignore
 
 
 MM_PER_REV = 19.6  # mm travel per revolution of the motor
@@ -77,7 +77,7 @@ class Door:
     """door interface"""
 
     def __init__(self, auto_reset=True, save_state=True):
-        self._stepper = Stepper(DRIVE_PINS)
+        self.stepper = Stepper(DRIVE_PINS)
 
         self._state = State.load()
         self._save_state = save_state  # save state to file?
@@ -107,13 +107,13 @@ class Door:
 
         print(f"moving {direction} for {revolutions} revolutions")
         for _ in range(int(revolutions)):
-            self._stepper.step(FULL_ROTATION, direction)
+            self.stepper.step(FULL_ROTATION, direction)
             print("revolutions: ", _ + 1)
 
         # remainder
         remainder = revolutions - int(revolutions)
         if remainder > 0:
-            self._stepper.step(int(remainder * FULL_ROTATION), direction)
+            self.stepper.step(int(remainder * FULL_ROTATION), direction)
             print("remainder: ", remainder)
 
     def open(self, distance_mm: float = TRAVEL_MM + OPEN_EXTRA_MM):
@@ -165,8 +165,3 @@ def test():
     asyncio.sleep(2)
     door.close(distance_mm)
     asyncio.sleep(2)
-
-
-if __name__ == "__main__":
-    print("testing door")
-    asyncio.run(test())
