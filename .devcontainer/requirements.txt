@@ -1,8 +1,8 @@
 autoflake
 black
-circup
 bump2version
 circuitpython-stubs
+circup
 coloredlogs
 coverage
 invoke
@@ -13,4 +13,6 @@ pytest
 pytest-asyncio
 pytest-coverage
 pytest-mock
+requests
 ruff
+types-requests

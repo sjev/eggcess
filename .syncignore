@@ -1,0 +1,4 @@
+*.mpy
+*.example
+boot_out.txt
+_*
