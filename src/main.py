@@ -20,7 +20,7 @@ from door import Door
 __version__ = "1.3.0"
 
 
-DEVICE_NAME = "eggcess"
+DEVICE_NAME = "eggcess_2"
 STATUS_TOPIC = f"/status/{DEVICE_NAME}"
 COMMAND_TOPIC = f"/{DEVICE_NAME}/cmd"
 STATE_TOPIC = f"/{DEVICE_NAME}/state"
