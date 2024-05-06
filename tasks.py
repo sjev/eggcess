@@ -54,11 +54,20 @@ def push(ctx, src="src/", dest="/"):
         for filename in files:
             local_path = os.path.join(root, filename)
             relative_path = os.path.relpath(local_path, src)
-            device_path = f"{dest}{relative_path}"
+            device_path = f"{dest}{relative_path}".replace(
+                "\\", "/"
+            )  # Ensure correct path separators
             with open(local_path, "rb") as file:
-                files = {"file": (filename, file)}
+                # Read the whole file content and send as raw binary data
+                file_content = file.read()
+                headers = {
+                    "Content-Type": "application/octet-stream"
+                }  # Set the content-type if necessary
                 response = requests.put(
-                    f"{base_url}{device_path}", files=files, auth=auth
+                    f"{base_url}{device_path}",
+                    data=file_content,
+                    auth=auth,
+                    headers=headers,
                 )
                 print(
                     f"Uploading {local_path} to {device_path}: {response.status_code}"
