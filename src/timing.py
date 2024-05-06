@@ -5,7 +5,6 @@ time-related functions
 * read csv and return open and close times for today
 """
 
-import asyncio
 import time
 import adafruit_ntp
 import rtc
