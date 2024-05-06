@@ -199,7 +199,7 @@ async def open_and_close():
 async def main():
     """main coroutine"""
 
-    mqtt_client = connect_mqtt(DEVICE_NAME)
+    mqtt_client = connect_mqtt()
 
     coros = [
         report_status(mqtt_client),
