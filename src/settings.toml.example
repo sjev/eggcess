@@ -1,7 +1,4 @@
 CIRCUITPY_WIFI_SSID = "my_wifi"
 CIRCUITPY_WIFI_PASSWORD = "password"
 CIRCUITPY_WEB_API_PASSWORD = "api_pass"
-MQTT_BROKER = "hass.local"
-MQTT_USER = "user"
-MQTT_PASS = "mqtt_pass"
-LOCATION_LATLON = [51.0, 6.0]
+
