@@ -34,48 +34,43 @@ def read_syncignore():
     return []
 
 
-def upload_file(base_url, auth, local_path, dest):
-    """Upload a single file."""
+@task
+def put(ctx, src: str, dest: str = "/") -> None:
+    """
+    Upload a single file to the device.
+    """
+    secrets = get_secrets()
+    base_url = f"http://{secrets['DEVICE_IP']}/fs/"
+    auth = ("", secrets["DEVICE_PASS"])
+    file_path = Path(src)
 
-    with open(local_path, "rb") as file:
+    if not file_path.exists():
+        print(f"File {src} does not exist")
+        return
+
+    # Ensure destination ends with a slash
+    if not dest.endswith("/"):
+        dest += "/"
+
+    # Construct the full URL path to upload the file to
+    device_path = f"{dest}{file_path.name}".replace(
+        "\\", "/"
+    )  # Ensure correct path separators
+    with file_path.open("rb") as file:
         # Read the whole file content and send as raw binary data
         file_content = file.read()
         headers = {
             "Content-Type": "application/octet-stream"
         }  # Set the content-type if necessary
         response = requests.put(
-            f"{base_url}{dest}", data=file_content, auth=auth, headers=headers
+            f"{base_url}{device_path}", data=file_content, auth=auth, headers=headers
         )
-        print(f"Uploading {local_path} to {dest}: {response.status_code}")
-
-
-@task
-def push(ctx, filename=None, src="src/", dest="/"):
-    """
-    Push files from the local 'src' directory or a specific file to the device, ignoring hidden files and .syncignore patterns.
-    """
-    secrets = get_secrets()
-    base_url = f"http://{secrets['DEVICE_IP']}/fs/"
-    auth = ("", secrets["DEVICE_PASS"])
-    ignore_patterns = read_syncignore()
-
-    if filename:
-        file_path = Path(src) / filename
-        if file_path.exists():
-            upload_file(base_url, auth, file_path, dest)
+        if response.status_code in [200, 201, 204]:
+            print(f"Successfully uploaded {file_path} to {device_path}")
         else:
-            print(f"File {filename} does not exist")
-    else:
-        for root, dirs, files in os.walk(src):
-            files = [
-                f
-                for f in files
-                if not f.startswith(".")
-                and all(not fnmatch(f, pat) for pat in ignore_patterns)
-            ]
-            for filename in files:
-                local_path = Path(root) / filename
-                upload_file(base_url, auth, local_path, dest)
+            print(
+                f"Failed to upload {file_path} to {device_path}: {response.status_code} - {response.reason}"
+            )
 
 
 @task
