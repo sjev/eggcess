@@ -1,4 +1,6 @@
 src/my_secrets.py
+src/settings.toml
+SECRETS.sh
 
 __pycache__/
 *.py[cod]
