@@ -50,6 +50,12 @@ class Stepper:
         for pin in self.pins:
             pin.value = LOW
 
+    def release_pins(self):
+        """release pins"""
+        self.reset()
+        for pin in self.pins:
+            pin.deinit()
+
 
 # ----------------- testing ----------------------------
 def test() -> None:
@@ -64,3 +70,5 @@ def test() -> None:
         t_end = time.monotonic()  # Get current time in seconds
         print(f"Duration: {(t_end - t_start):.2f} s")
         time.sleep(1)
+
+    stepper.release_pins()
