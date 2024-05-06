@@ -1,7 +1,6 @@
 """ main module for coop_door """
 
-import board
-import digitalio
+import microcontroller
 
 import asyncio
 import json
@@ -212,6 +211,7 @@ async def main():
     # this should never be reached
     logger.warning("main ended ...")
     await asyncio.sleep(2)
+    microcontroller.reset()
 
 
 # ------------------run main------------------
