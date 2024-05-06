@@ -1,23 +1,24 @@
 """ main module for coop_door """
 
+import board
+import digitalio
+
 import asyncio
 import json
 import time
 
-import machine
-import network
+import wifi
 import gc
-from umqtt.robust import MQTTClient
 
 
 import timing
 import logger
-import webserver
-import my_secrets as secrets
+import mqtt
+
 
 from door import Door
 
-__version__ = "1.3.0"
+__version__ = "2.0.0"
 
 
 DEVICE_NAME = "eggcess_2"
@@ -30,13 +31,9 @@ T_START = time.time()
 
 logger.info(f"*** system start  v{__version__}***")
 
-
-led = machine.Pin(
-    2, machine.Pin.OUT
-)  # use LED to indicate status. This is also one of drive pins
-
 door = Door()
-wdt = machine.WDT(timeout=300_000)  # 5 minutes (in milliseconds)
+
+led = door.stepper.pins[0]
 
 
 class Params:
@@ -48,17 +45,10 @@ class Params:
     date: str | None = None
 
 
-def connect_mqtt(client_id: str):
+def connect_mqtt():
     """Connects to the MQTT broker"""
 
-    client = MQTTClient(
-        client_id,
-        secrets.MQTT_BROKER,
-        user=secrets.MQTT_USER,
-        password=secrets.MQTT_PASSWORD,
-    )
-    client.set_callback(command_callback)
-    client.connect()
+    client = mqtt.get_client(on_message=command_callback)
     client.subscribe(COMMAND_TOPIC)
     return client
 
@@ -76,15 +66,6 @@ def command_callback(topic, msg):  # pylint: disable=unused-argument
         print("invalid command")
 
 
-async def mqtt_listener(client):
-    while True:
-        try:
-            client.check_msg()  # Check for new MQTT messages
-            await asyncio.sleep(1)  # Pause briefly to avoid blocking
-        except Exception as e:
-            logger.error(f"Exception in mqtt_listener: {type(e).__name__}: {e}")
-
-
 async def report_status(client, period_sec=5):
     """report status"""
 
@@ -94,7 +75,7 @@ async def report_status(client, period_sec=5):
         "door_state": door.state,  # assuming door.state is static, remove if it changes
     }
 
-    wifi = network.WLAN(network.STA_IF)
+    network = wifi.radio.ap_info
 
     while True:
         try:
@@ -110,10 +91,10 @@ async def report_status(client, period_sec=5):
 
             msg.update(
                 {
-                    "ip": wifi.ifconfig()[0],
+                    "ip": wifi.radio.ipv4_address,
                     "uptime_h": round(uptime / 3600, 3),
                     "mem_free": gc.mem_free(),
-                    "rssi": wifi.status("rssi"),
+                    "rssi": network.rssi,
                     "date": Params.date,
                     "time": f"{utc_time[3]:02}:{utc_time[4]:02}:{utc_time[5]:02}",
                     "open": (
@@ -127,9 +108,6 @@ async def report_status(client, period_sec=5):
                     "door_state": door.state,  # update door state in case it changes
                 }
             )
-
-            # Reset watchdog timer
-            wdt.feed()
 
             # Optionally serialize and publish status
             json_status = json.dumps(msg)
@@ -145,34 +123,6 @@ async def report_status(client, period_sec=5):
             gc.collect()
 
             await asyncio.sleep(period_sec)
-        except Exception as e:
-            logger.error(f"Exception in report_status: {type(e).__name__}: {e}")
-            await asyncio.sleep(1)
-
-
-async def report_status_min(period_sec=5):
-    """minimal reporting, hopefully without memory leak"""
-
-    wifi = network.WLAN(network.STA_IF)
-
-    while True:
-        try:
-            # Flash LED
-            led.value(1)
-            await asyncio.sleep(0.01)
-            led.value(0)
-
-            # Print minimal status to console
-            print(
-                {
-                    "mem_free": gc.mem_free(),
-                    "rssi": wifi.status("rssi"),
-                }
-            )
-
-            # Pause before next update
-            await asyncio.sleep(period_sec)
-
         except Exception as e:
             logger.error(f"Exception in report_status: {type(e).__name__}: {e}")
             await asyncio.sleep(1)
@@ -251,16 +201,9 @@ async def main():
 
     mqtt_client = connect_mqtt(DEVICE_NAME)
 
-    # start webserver
-    tasks = []
-    tasks.append(
-        asyncio.create_task(asyncio.start_server(webserver.serve_client, "0.0.0.0", 80))
-    )
-
     coros = [
         report_status(mqtt_client),
         # report_status_min(),
-        mqtt_listener(mqtt_client),
         daily_coro(),
         open_and_close(),
     ]
@@ -268,9 +211,8 @@ async def main():
     await asyncio.gather(*coros)
 
     # this should never be reached
-    logger.warning("main ended, rebooting")
+    logger.warning("main ended ...")
     await asyncio.sleep(2)
-    machine.reset()
 
 
 # ------------------run main------------------
