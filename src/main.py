@@ -80,10 +80,9 @@ async def report_status(client, period_sec=5):
     while True:
         try:
             # Flash LED
-            led.value(1)
+            led.value = 1
             await asyncio.sleep(0.01)
-            led.value(0)
-            led.value(0)
+            led.value = 0
 
             # Update dynamic values
             utc_time = time.localtime()
