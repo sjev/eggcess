@@ -1,4 +1,5 @@
 *.mpy
 *.example
 boot_out.txt
-_*
+door_state.json
+log.txt

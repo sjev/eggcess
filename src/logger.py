@@ -1,5 +1,6 @@
 """ simple logging module """
 
+import os
 import time
 
 LOG_FILE = "log.txt"
@@ -30,15 +31,57 @@ def error(message):
     log_to_file(message, "ERROR")
 
 
-def truncate_log(file=LOG_FILE, max_lines=300, keep_lines=50):
+def truncate_log(file="LOG_FILE", max_lines=300, keep_lines=50):
     """Truncate the log file to keep only the last 'keep_lines' lines if it exceeds 'max_lines' lines."""
+    # Check current line count in the file
+    line_count = 0
     with open(file, "r") as f:
-        lines = f.readlines()
+        for _ in f:
+            line_count += 1
 
-    line_count = len(lines)
+    # Only proceed if the line count exceeds the max allowed lines
     if line_count > max_lines:
-        log_to_file(f"Truncating log file to {keep_lines} lines", "INFO")
-        with open(file, "w") as f:
-            # Keep only the last 'keep_lines' lines
-            for line in lines[-keep_lines:]:
-                f.write(line)
+        print(
+            f"Truncating log file to {keep_lines} lines"
+        )  # Assuming log_to_file is a print for simplicity
+
+        # Identify the start line of the 'keep_lines' to keep
+        start_line = line_count - keep_lines
+
+        # Write the remaining lines back to the file
+        with open(file, "r") as fr:
+            with open(file + ".tmp", "w") as fw:
+                # Skip the first 'start_line' lines
+                for _ in range(start_line):
+                    fr.readline()
+
+                # Copy remaining lines one by one
+                for line in fr:
+                    fw.write(line)
+
+        # Replace old file with new file
+        os.rename(file + ".tmp", file)
+
+
+# ------------ testing
+
+
+def test():
+    # Step 1: Create a new 'test_log.txt' with 500 lines
+    with open("test_log.txt", "w") as f:
+        for i in range(1, 501):
+            f.write(f"Line {i}\n")
+
+    # Step 2: Truncate the file to 20 lines
+    truncate_log(file="test_log.txt", max_lines=300, keep_lines=20)
+
+    # Step 3: Check new number of lines and Step 4: Print the lines
+    with open("test_log.txt", "r") as f:
+        lines = f.readlines()
+        print(f"New number of lines: {len(lines)}")
+        print("Remaining lines:")
+        for line in lines:
+            print(line, end="")  # Use end='' to avoid adding extra newlines
+
+    # Step 5: Delete 'test_log.txt'
+    os.remove("test_log.txt")

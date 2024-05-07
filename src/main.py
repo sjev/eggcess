@@ -109,21 +109,26 @@ async def report_status(client, period_sec=5):
 
             # Optionally serialize and publish status
             json_status = json.dumps(msg)
-            client.publish(STATUS_TOPIC, json_status)
 
-            # Publish state
-            client.publish(STATE_TOPIC, door.state)
+            if client.is_connected():
+                client.publish(STATUS_TOPIC, json_status)
+            else:
+                print("mqtt client not connected, reconnecting")
+                client.connect()
 
             # Print status to console, to avoid ampy timeout
             print(msg)
+
+            # Publish state
+            client.publish(STATE_TOPIC, door.state)
 
             # collect garbage (patch memory leak)
             gc.collect()
 
             await asyncio.sleep(period_sec)
-        except Exception as e:
+        except OSError as e:
             logger.error(f"Exception in report_status: {type(e).__name__}: {e}")
-            await asyncio.sleep(1)
+            await asyncio.sleep(10)
 
 
 async def daily_coro():
