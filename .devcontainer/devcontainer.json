@@ -6,14 +6,13 @@
   },
 
   "initializeCommand": "mkdir -p /var/tmp/container-extensions",
-  // "postCreateCommand": "./init_container.sh",
+
   "mounts": [
     "source=/var/tmp/container-extensions,target=/home/dev/.vscode-server/extensions,type=bind,consistency=cached"
   ],
   // environment variables
   "containerEnv": {
-    "PYTHONPATH": "/workspaces/eggcess/src",
-    "DEVICE": "192.168.1.86"
+    "PYTHONPATH": "/workspaces/eggcess/src"
   },
 
   "runArgs": ["--network", "host", "--privileged"],
