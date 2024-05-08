@@ -2,6 +2,7 @@ import wifi
 import socketpool
 import time
 import adafruit_minimqtt.adafruit_minimqtt as mqtt
+import logger
 
 import my_secrets as secrets
 
@@ -49,7 +50,8 @@ def get_client(on_message=None):
     if on_message:
         client.on_message = on_message
 
-    client.connect()
+
+        
     return client
 
 
