@@ -1,4 +1,19 @@
-""" main module for coop_door """
+""" main module for coop_door
+
+TODO: implement webserver interface
+
+mqtt was difficult to get stable. On micropython door stops reacting after some time to commands.
+On circuitpython connection errors are difficult to recover.
+
+Running webserver with asyncio on ciruitpython does not work because `usocket` is missing.
+
+Info for webserver:
+
+* adafruit http server https://docs.circuitpython.org/projects/httpserver/en/latest/examples.html
+* home assistant rest switch https://www.home-assistant.io/integrations/switch.rest/
+
+
+"""
 
 import microcontroller
 import os
