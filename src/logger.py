@@ -31,7 +31,7 @@ def error(message):
     log_to_file(message, "ERROR")
 
 
-def truncate_log(file="LOG_FILE", max_lines=300, keep_lines=50):
+def truncate_log(file=LOG_FILE, max_lines=300, keep_lines=50):
     """Truncate the log file to keep only the last 'keep_lines' lines if it exceeds 'max_lines' lines."""
     # Check current line count in the file
     line_count = 0
