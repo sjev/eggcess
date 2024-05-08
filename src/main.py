@@ -1,7 +1,7 @@
 """ main module for coop_door """
 
 import microcontroller
-
+import os
 import asyncio
 import time
 
@@ -14,6 +14,10 @@ import logger
 from door import Door
 
 __version__ = "2.0.0"
+
+if os.getenv("TESTING"):
+    print("Running tests")
+    import tests
 
 
 DEVICE_NAME = "eggcess_2"
