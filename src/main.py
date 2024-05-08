@@ -3,16 +3,12 @@
 import microcontroller
 
 import asyncio
-import json
 import time
 
 import wifi
 import gc
-
-
 import timing
 import logger
-import mqtt
 
 
 from door import Door
@@ -44,14 +40,6 @@ class Params:
     date: str | None = None
 
 
-def connect_mqtt():
-    """Connects to the MQTT broker"""
-
-    client = mqtt.get_client(on_message=command_callback)
-    client.subscribe(COMMAND_TOPIC)
-    return client
-
-
 def command_callback(topic, msg):  # pylint: disable=unused-argument
     print(f"Received command: {msg}")
     command = msg.decode()
@@ -65,7 +53,7 @@ def command_callback(topic, msg):  # pylint: disable=unused-argument
         print("invalid command")
 
 
-async def report_status(client, period_sec=5):
+async def report_status(period_sec=5):
     """report status"""
 
     # Pre-initialize the message dictionary with static values
@@ -77,58 +65,41 @@ async def report_status(client, period_sec=5):
     network = wifi.radio.ap_info
 
     while True:
-        try:
-            # Flash LED
-            led.value = 1
-            await asyncio.sleep(0.01)
-            led.value = 0
 
-            # Update dynamic values
-            utc_time = time.localtime()
-            uptime = time.time() - T_START
+        # Flash LED
+        led.value = 1
+        await asyncio.sleep(0.01)
+        led.value = 0
 
-            msg.update(
-                {
-                    "ip": wifi.radio.ipv4_address,
-                    "uptime_h": round(uptime / 3600, 3),
-                    "mem_free": gc.mem_free(),
-                    "rssi": network.rssi,
-                    "date": Params.date,
-                    "time": f"{utc_time[3]:02}:{utc_time[4]:02}:{utc_time[5]:02}",
-                    "open": (
-                        timing.hours2str(Params.open_time) if Params.open_time else None
-                    ),
-                    "close": (
-                        timing.hours2str(Params.close_time)
-                        if Params.close_time
-                        else None
-                    ),
-                    "door_state": door.state,  # update door state in case it changes
-                }
-            )
+        # Update dynamic values
+        utc_time = time.localtime()
+        uptime = time.time() - T_START
 
-            # Optionally serialize and publish status
-            json_status = json.dumps(msg)
+        msg.update(
+            {
+                "ip": wifi.radio.ipv4_address,
+                "uptime_h": round(uptime / 3600, 3),
+                "mem_free": gc.mem_free(),
+                "rssi": network.rssi,
+                "date": Params.date,
+                "time": f"{utc_time[3]:02}:{utc_time[4]:02}:{utc_time[5]:02}",
+                "open": (
+                    timing.hours2str(Params.open_time) if Params.open_time else None
+                ),
+                "close": (
+                    timing.hours2str(Params.close_time) if Params.close_time else None
+                ),
+                "door_state": door.state,  # update door state in case it changes
+            }
+        )
 
-            if client.is_connected():
-                client.publish(STATUS_TOPIC, json_status)
-            else:
-                print("mqtt client not connected, reconnecting")
-                client.connect()
+        # Print status to console, to avoid ampy timeout
+        print(msg)
 
-            # Print status to console, to avoid ampy timeout
-            print(msg)
+        # collect garbage (patch memory leak)
+        gc.collect()
 
-            # Publish state
-            client.publish(STATE_TOPIC, door.state)
-
-            # collect garbage (patch memory leak)
-            gc.collect()
-
-            await asyncio.sleep(period_sec)
-        except OSError as e:
-            logger.error(f"Exception in report_status: {type(e).__name__}: {e}")
-            await asyncio.sleep(10)
+        await asyncio.sleep(period_sec)
 
 
 async def daily_coro():
@@ -202,11 +173,8 @@ async def open_and_close():
 async def main():
     """main coroutine"""
 
-    mqtt_client = connect_mqtt()
-
     coros = [
-        report_status(mqtt_client),
-        # report_status_min(),
+        report_status(),
         daily_coro(),
         open_and_close(),
     ]
@@ -215,7 +183,7 @@ async def main():
 
     # this should never be reached
     logger.warning("main ended ...")
-    await asyncio.sleep(2)
+    await asyncio.sleep(5)
     microcontroller.reset()
 
 
