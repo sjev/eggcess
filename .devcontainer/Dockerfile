@@ -1,5 +1,5 @@
 
-FROM registry.gitlab.com/roxautomation/images/circuitpython
+FROM roxauto/circuitpython:9.0.4
 ARG USERNAME=dev
 ARG UID=1000
 ARG GID=1000
