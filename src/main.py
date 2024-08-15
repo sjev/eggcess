@@ -17,7 +17,7 @@ import my_secrets as secrets
 
 from door import Door
 
-__version__ = "1.3.1"
+__version__ = "1.3.0"
 
 
 DEVICE_NAME = "eggcess"

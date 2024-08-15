@@ -9,7 +9,6 @@ import asyncio
 import utime as time
 import machine
 import ntptime
-import logger
 
 DATA_FILE = "sun_lut.csv"
 
@@ -41,7 +40,7 @@ async def update_time(max_attempts=10, retry_delay=5):
     attempts = 0
 
     while attempts < max_attempts:
-        logger.info(f"Updating time attempt {attempts + 1}")
+        print(f"Updating time attempt {attempts + 1}")
         try:
             # Create an RTC object
             rtc = machine.RTC()
@@ -53,13 +52,13 @@ async def update_time(max_attempts=10, retry_delay=5):
             utc_time = rtc.datetime()
 
             # Print the UTC time
-            logger.info("UTC Time:", utc_time)
+            print("UTC Time:", utc_time)
 
             attempts = 0  # reset attempts
         except Exception as e:
             attempts += 1
-            logger.error(f"Error updating time:  {type(e).__name__}: {e}")
-            logger.info(f"Sleeping for {retry_delay} seconds")
+            print(f"Error updating time:  {type(e).__name__}: {e}")
+            print(f"Sleeping for {retry_delay} seconds")
             await asyncio.sleep(retry_delay)
         return
 
