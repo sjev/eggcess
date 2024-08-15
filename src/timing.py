@@ -9,6 +9,7 @@ import asyncio
 import utime as time
 import machine
 import ntptime
+import logger
 
 DATA_FILE = "sun_lut.csv"
 
@@ -34,13 +35,13 @@ def extract_floats_from_file(
     raise ValueError("Date not found in file")
 
 
-async def update_time(max_attempts=10, retry_delay=5):
+def update_time(max_attempts=10, retry_delay=2):
     """update the RTC time from NTP server"""
 
     attempts = 0
 
     while attempts < max_attempts:
-        print(f"Updating time attempt {attempts + 1}")
+        logger.info(f"Updating time attempt {attempts + 1}")
         try:
             # Create an RTC object
             rtc = machine.RTC()
@@ -52,14 +53,14 @@ async def update_time(max_attempts=10, retry_delay=5):
             utc_time = rtc.datetime()
 
             # Print the UTC time
-            print("UTC Time:", utc_time)
+            logger.info(f"UTC Time: { utc_time}")
 
             attempts = 0  # reset attempts
         except Exception as e:
             attempts += 1
-            print(f"Error updating time:  {type(e).__name__}: {e}")
-            print(f"Sleeping for {retry_delay} seconds")
-            await asyncio.sleep(retry_delay)
+            logger.error(f"Error updating time:  {type(e).__name__}: {e}")
+            logger.info(f"Sleeping for {retry_delay} seconds")
+            time.sleep(retry_delay)
         return
 
     # if we get here, we have exceeded the max attempts, raise an exception
