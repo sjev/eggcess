@@ -256,6 +256,8 @@ async def main():
     tasks.append(
         asyncio.create_task(asyncio.start_server(webserver.serve_client, "0.0.0.0", 80))
     )
+    await asyncio.sleep(10)  # time to connect to webrepl
+    print("-------------starting coros-----------------")
 
     coros = [
         report_status(mqtt_client),
