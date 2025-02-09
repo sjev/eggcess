@@ -35,9 +35,10 @@ def read_syncignore():
 
 
 @task
-def put(ctx, src: str, dest: str = "/") -> None:
+def put(ctx, src: str, dest: str) -> None:
     """
-    Upload a single file to the device.
+    Upload a single file to the device. (invoke put --src=myfile.txt --dest=/remote/path/newname.txt)
+
     """
     secrets = get_secrets()
     base_url = f"http://{secrets['DEVICE_IP']}/fs/"
@@ -48,28 +49,27 @@ def put(ctx, src: str, dest: str = "/") -> None:
         print(f"File {src} does not exist")
         return
 
-    # Ensure destination ends with a slash
-    if not dest.endswith("/"):
-        dest += "/"
+    # Determine remote path
+    if dest.endswith("/"):
+        remote_path = f"{dest}{file_path.name}"
+    else:
+        remote_path = dest
 
-    # Construct the full URL path to upload the file to
-    device_path = f"{dest}{file_path.name}".replace(
-        "\\", "/"
-    )  # Ensure correct path separators
+    # Ensure correct path separators
+    remote_path = remote_path.replace("\\", "/")
+
     with file_path.open("rb") as file:
-        # Read the whole file content and send as raw binary data
         file_content = file.read()
-        headers = {
-            "Content-Type": "application/octet-stream"
-        }  # Set the content-type if necessary
+        headers = {"Content-Type": "application/octet-stream"}
         response = requests.put(
-            f"{base_url}{device_path}", data=file_content, auth=auth, headers=headers
+            f"{base_url}{remote_path}", data=file_content, auth=auth, headers=headers
         )
+
         if response.status_code in [200, 201, 204]:
-            print(f"Successfully uploaded {file_path} to {device_path}")
+            print(f"Successfully uploaded {file_path} to {remote_path}")
         else:
             print(
-                f"Failed to upload {file_path} to {device_path}: {response.status_code} - {response.reason}"
+                f"Failed to upload {file_path} to {remote_path}: {response.status_code} - {response.reason}"
             )
 
 
