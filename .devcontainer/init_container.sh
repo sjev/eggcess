@@ -2,7 +2,7 @@
 
 set -e
 
-BOARD=espressif_esp32c3_devkitm_1_n4
+BOARD=seeed_xiao_esp32c3
 
 sudo circuitpython_setboard $BOARD
 
