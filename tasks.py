@@ -76,7 +76,7 @@ def put(ctx, src: str, dest: str) -> None:
 @task
 def pull(ctx, dest="src/", src="/"):
     """
-    Pull files from the device to the local 'dest' directory , ignoring hidden files and .syncignore patterns.
+    Get files from device, dest is the local directory, src is the remote directory.
     """
     secrets = get_secrets()
     base_url = f"http://{secrets['DEVICE_IP']}/fs/"
