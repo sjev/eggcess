@@ -107,6 +107,19 @@ Mechanical design is available on
 * [onshape](https://cad.onshape.com/documents/9d1e9d13503836a93d923c99/w/cf41e9abcfc58e38551d4ef1/e/91ab2b97868868ebff4768e5?renderMode=0&uiState=6590590c9a15484af8e68a46)
 * `stl` folder contains ready-to-print files.
 
+
+## Electronics
+
+XIAO-ESP32-C3 pinout
+
+
+![](img/pin_map-2.png)
+
+
+soldering connections: [D0..D3] (In Micropython noted as gpio 2..5)
+
+![](img/eggcess_01.jpg)
+
 ---------------------------------------------------------
 
 ## Bill of materials
