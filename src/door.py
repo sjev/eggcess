@@ -10,7 +10,7 @@ import logger
 
 STATE_FILE = "door_state.json"
 
-DRIVE_PINS = [board.D2, board.D3, board.D4, board.D5]  # type: ignore
+DRIVE_PINS = [board.D0, board.D1, board.D2, board.D3]  # type: ignore
 
 
 MM_PER_REV = 19.6  # mm travel per revolution of the motor
