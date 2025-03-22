@@ -1,81 +1,136 @@
 import pytest
-import time
-from tasks import Task, TaskManager
+import tasks
+import door
 
 
-def fake_time_struct(hour, minute, day=1):
-    """Helper to build a fake time.struct_time"""
-    return time.struct_time((2023, 1, day, hour, minute, 0, 0, 0, 0))
+# Test for OpenDoorTask when door is closed and time has reached exec_time.
+def test_open_door_task_executes_when_door_closed(mocker):
+    # Set current time after exec_time.
+    mocker.patch("tasks.timing.now", return_value=10.0)
+    # Patch logger to capture output.
+    mock_logger = mocker.patch("tasks.logger.info")
 
+    # Create a fake door with state CLOSED.
+    class FakeDoor:
+        state = door.STATE_CLOSED
 
-def test_task_should_execute_true(mocker):
-    mocker.patch("time.localtime", return_value=fake_time_struct(10, 30))
-    task = Task("test", lambda: "ok", hour=9, minute=0)
-    assert task.should_execute() is True
+    fake_door = FakeDoor()
 
-
-def test_task_should_execute_false_same_day(mocker):
-    mocker.patch("time.localtime", return_value=fake_time_struct(10, 30, day=2))
-    task = Task("test", lambda: "ok", hour=9, minute=0)
-    task.last_execution_day = 2
-    assert task.should_execute() is False
-
-
-def test_task_should_execute_false_wrong_time(mocker):
-    mocker.patch("time.localtime", return_value=fake_time_struct(8, 59))
-    task = Task("test", lambda: "ok", hour=9, minute=0)
-    assert task.should_execute() is False
-
-
-def test_task_execute_increments_count_and_sets_day(mocker):
-    mock_fn = mocker.Mock()
-    mocker.patch("time.localtime", return_value=fake_time_struct(11, 0, day=5))
-
-    task = Task("run", mock_fn, hour=10, minute=0)
+    task = tasks.OpenDoorTask(exec_time=5.0, door=fake_door)
     task.execute()
 
-    assert task.execution_count == 1
-    assert task.last_execution_day == 5
-    mock_fn.assert_called_once()
+    # Should log "Opening door"
+    mock_logger.assert_any_call("Opening door")
+    assert task.is_executed
 
 
-def test_task_manager_executes_scheduled_task(mocker):
-    mock_fn = mocker.Mock()
-    mocker.patch("time.localtime", return_value=fake_time_struct(12, 0, day=3))
+# Test for OpenDoorTask when current time is before exec_time.
+def test_open_door_task_does_not_execute_before_time(mocker):
+    mocker.patch("tasks.timing.now", return_value=3.0)
+    mock_logger = mocker.patch("tasks.logger.info")
 
-    task = Task("tm_task", mock_fn, hour=11, minute=0)
-    tm = TaskManager()
-    tm.add_task(task)
-    tm.execute()
+    class FakeDoor:
+        state = door.STATE_CLOSED
 
-    assert task.execution_count == 1
-    mock_fn.assert_called_once()
+    fake_door = FakeDoor()
 
+    task = tasks.OpenDoorTask(exec_time=5.0, door=fake_door)
+    task.execute()
 
-def test_task_manager_skips_unscheduled_task(mocker):
-    mock_fn = mocker.Mock()
-    mocker.patch("time.localtime", return_value=fake_time_struct(7, 59, day=2))
-
-    task = Task("too_early", mock_fn, hour=8, minute=0)
-    tm = TaskManager()
-    tm.add_task(task)
-    tm.execute()
-
-    assert task.execution_count == 0
-    mock_fn.assert_not_called()
+    # logger.info should not be called.
+    mock_logger.assert_not_called()
+    assert not task.is_executed
 
 
-def test_task_manager_handles_exception(mocker, capsys):
-    def boom():
-        raise ValueError("fail")
+# Test for OpenDoorTask when door is already open.
+def test_open_door_task_skips_when_door_already_open(mocker):
+    mocker.patch("tasks.timing.now", return_value=10.0)
+    mock_logger = mocker.patch("tasks.logger.info")
 
-    mocker.patch("time.localtime", return_value=fake_time_struct(15, 0, day=10))
+    class FakeDoor:
+        state = door.STATE_OPEN
 
-    task = Task("failing", boom, hour=15, minute=0)
-    tm = TaskManager()
-    tm.add_task(task)
-    tm.execute()
+    fake_door = FakeDoor()
 
-    out = capsys.readouterr().out
-    assert "Error executing task failing: fail" in out
-    assert task.execution_count == 0
+    task = tasks.OpenDoorTask(exec_time=5.0, door=fake_door)
+    task.execute()
+
+    # Ensure "Opening door" is not logged.
+    for call in mock_logger.call_args_list:
+        args, _ = call
+        assert "Opening door" not in args[0]
+    assert task.is_executed
+
+
+# Test for CloseDoorTask when door is open.
+def test_close_door_task_executes_when_door_open(mocker):
+    mocker.patch("tasks.timing.now", return_value=10.0)
+    mock_logger = mocker.patch("tasks.logger.info")
+
+    class FakeDoor:
+        state = door.STATE_OPEN
+
+    fake_door = FakeDoor()
+
+    task = tasks.CloseDoorTask(exec_time=5.0, door=fake_door)
+    task.execute()
+
+    mock_logger.assert_any_call("Closing door")
+    assert task.is_executed
+
+
+# Test for CloseDoorTask when current time is before exec_time.
+def test_close_door_task_does_not_execute_before_time(mocker):
+    mocker.patch("tasks.timing.now", return_value=3.0)
+    mock_logger = mocker.patch("tasks.logger.info")
+
+    class FakeDoor:
+        state = door.STATE_OPEN
+
+    fake_door = FakeDoor()
+
+    task = tasks.CloseDoorTask(exec_time=5.0, door=fake_door)
+    task.execute()
+
+    mock_logger.assert_not_called()
+    assert not task.is_executed
+
+
+# Test for CloseDoorTask when door is already closed.
+def test_close_door_task_skips_when_door_already_closed(mocker):
+    mocker.patch("tasks.timing.now", return_value=10.0)
+    mock_logger = mocker.patch("tasks.logger.info")
+
+    class FakeDoor:
+        state = door.STATE_CLOSED
+
+    fake_door = FakeDoor()
+
+    task = tasks.CloseDoorTask(exec_time=5.0, door=fake_door)
+    task.execute()
+
+    for call in mock_logger.call_args_list:
+        args, _ = call
+        assert "Closing door" not in args[0]
+    assert task.is_executed
+
+
+# Test that a task doesn't execute twice.
+def test_task_does_not_execute_twice(mocker):
+    mocker.patch("tasks.timing.now", return_value=10.0)
+    mock_logger = mocker.patch("tasks.logger.info")
+
+    class FakeDoor:
+        state = door.STATE_OPEN
+
+    fake_door = FakeDoor()
+
+    task = tasks.CloseDoorTask(exec_time=5.0, door=fake_door)
+    task.execute()
+
+    # Reset logger call history.
+    mock_logger.reset_mock()
+    task.execute()
+
+    # No new logging should occur on second execution.
+    mock_logger.assert_not_called()
