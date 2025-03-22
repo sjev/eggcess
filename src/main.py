@@ -1,38 +1,30 @@
-""" main module for coop_door
+"""
 
-TODO: implement webserver interface
+main module for coop_door
+
 
 mqtt was difficult to get stable. On micropython door stops reacting after some time to commands.
 On circuitpython connection errors are difficult to recover.
 
-Running webserver with asyncio on ciruitpython does not work because `usocket` is missing.
 
-Info for webserver:
 
-* adafruit http server https://docs.circuitpython.org/projects/httpserver/en/latest/examples.html
-* home assistant rest switch https://www.home-assistant.io/integrations/switch.rest/
+home assistant rest switch https://www.home-assistant.io/integrations/switch.rest/
 
 
 """
 
-import microcontroller
-import os
-import asyncio
+import gc
 import time
 
+import microcontroller
 import wifi
-import gc
-import timing
+
 import logger
-
-
+import timing
 from door import Door
+import daily_tasks
 
-__version__ = "2.0.0"
-
-if os.getenv("TESTING"):
-    print("Running tests")
-    import tests
+__version__ = "2.1.0"
 
 
 DEVICE_NAME = "eggcess_2"
@@ -46,17 +38,8 @@ T_START = time.time()
 logger.info(f"*** system start  v{__version__}***")
 
 door = Door()
-
 led = door.stepper.pins[0]
-
-
-class Params:
-    """holds parameters"""
-
-    name: str = DEVICE_NAME
-    open_time: float | None = None
-    close_time: float | None = None
-    date: str | None = None
+open_task = daily_tasks.OpenDoorTask(exec_time=None, door=door)
 
 
 def command_callback(topic, msg):  # pylint: disable=unused-argument
@@ -72,7 +55,7 @@ def command_callback(topic, msg):  # pylint: disable=unused-argument
         print("invalid command")
 
 
-async def report_status(period_sec=5):
+def report_status(p):
     """report status"""
 
     # Pre-initialize the message dictionary with static values
@@ -83,129 +66,77 @@ async def report_status(period_sec=5):
 
     network = wifi.radio.ap_info
 
-    while True:
+    # Flash LED
+    led.value = 1
+    time.sleep(0.01)
+    led.value = 0
 
-        # Flash LED
-        led.value = 1
-        await asyncio.sleep(0.01)
-        led.value = 0
+    # Update dynamic values
+    utc_time = time.localtime()
+    uptime = time.time() - T_START
 
-        # Update dynamic values
-        utc_time = time.localtime()
-        uptime = time.time() - T_START
+    msg.update(
+        {
+            "ip": wifi.radio.ipv4_address,
+            "uptime_h": round(uptime / 3600, 3),
+            "mem_free": gc.mem_free(),
+            "rssi": network.rssi,
+            "date": Params.date,
+            "time": f"{utc_time[3]:02}:{utc_time[4]:02}:{utc_time[5]:02}",
+            "open": (timing.hours2str(Params.open_time) if Params.open_time else None),
+            "close": (
+                timing.hours2str(Params.close_time) if Params.close_time else None
+            ),
+            "door_state": door.state,  # update door state in case it changes
+        }
+    )
 
-        msg.update(
-            {
-                "ip": wifi.radio.ipv4_address,
-                "uptime_h": round(uptime / 3600, 3),
-                "mem_free": gc.mem_free(),
-                "rssi": network.rssi,
-                "date": Params.date,
-                "time": f"{utc_time[3]:02}:{utc_time[4]:02}:{utc_time[5]:02}",
-                "open": (
-                    timing.hours2str(Params.open_time) if Params.open_time else None
-                ),
-                "close": (
-                    timing.hours2str(Params.close_time) if Params.close_time else None
-                ),
-                "door_state": door.state,  # update door state in case it changes
-            }
-        )
-
-        # Print status to console, to avoid ampy timeout
-        print(msg)
-
-        # collect garbage (patch memory leak)
-        gc.collect()
-
-        await asyncio.sleep(period_sec)
+    # Print status to console, to avoid ampy timeout
+    print(msg)
 
 
-async def daily_coro():
+async def update_timing():
     """update time and open and close times"""
 
-    while True:
-        try:
-            # truncate log if necessary
-            logger.truncate_log()
+    try:
+        # truncate log if necessary
+        logger.truncate_log()
 
-            # get open and close times
-            date, hours = timing.now()
-            Params.date = date
-            Params.open_time, Params.close_time = timing.extract_floats_from_file(date)
+        # get open and close times
+        date, hours = timing.time()
+        Params.date = date
+        Params.open_time, Params.close_time = timing.extract_floats_from_file(date)
 
-            # update ntp time (may fail)
-            print("updating time")
-            timing.update_time()
+        # update ntp time (may fail)
+        print("updating time")
+        timing.update_time()
 
-            # schedule the next update, approx 1 am tomorrow
-            delay_hours = 24 - hours + 1
-            print(f"next update in {delay_hours} hours")
-            logger.info(
-                f"time updated, open: {timing.hours2str(Params.open_time)}, close: {timing.hours2str(Params.close_time)}"
-            )
+        # schedule the next update, approx 1 am tomorrow
+        delay_hours = 24 - hours + 1
+        print(f"next update in {delay_hours} hours")
+        logger.info(
+            f"time updated, open: {timing.hours2str(Params.open_time)}, close: {timing.hours2str(Params.close_time)}"
+        )
 
-            # collect garbage
-            gc.collect()
-
-            await asyncio.sleep(delay_hours * 3600)
-
-        except AssertionError as e:
-            logger.warning(f"Exception in update_timing: {type(e).__name__}: {e}")
-            await asyncio.sleep(1)
-        except timing.MaxRetriesExceeded as e:
-            logger.error(f"{type(e).__name__}: {e}")
-            await asyncio.sleep(3600)
+    except timing.MaxRetriesExceeded as e:
+        logger.error(f"{type(e).__name__}: {e}")
 
 
-async def open_and_close():
-    """open and close the door based on schedule, sleeps until next event"""
+def main():
+    """main function"""
 
-    await asyncio.sleep(5)  # wait for other coroutines to get open and close times
+    logger.info("****** starting door ******")
 
-    while True:
-        try:
-            print("checking open and close times")
-            # get current time
-            _, current_hours = timing.now()
+    try:
+        while True:
+            pass
 
-            if Params.open_time is None or Params.close_time is None:
-                raise ValueError("Open or close time is not set.")
+    except Exception as e:
+        logger.error(f"Main crashed: {type(e).__name__}: {e}")
 
-            # perform action and get sleep duration
-            sleep_duration = door.automate(
-                current_hours, Params.open_time, Params.close_time
-            )
-            sleep_hr = sleep_duration / 3600
-            wake_time = timing.hours2str((current_hours + sleep_hr) % 24)
-
-            logger.info(f"sleep_duration: {sleep_hr:.3f} hours till {wake_time}")
-
-            # wait until next event
-            await asyncio.sleep(sleep_duration)
-
-        except ValueError as e:
-            logger.warning(f"Exception in open_and_close: {type(e).__name__}: {e}")
-            await asyncio.sleep(1)
+        time.sleep(5)
+        microcontroller.reset()
 
 
-async def main():
-    """main coroutine"""
-
-    coros = [
-        report_status(),
-        daily_coro(),
-        open_and_close(),
-    ]
-
-    await asyncio.gather(*coros)
-
-    # this should never be reached
-    logger.warning("main ended ...")
-    await asyncio.sleep(5)
-    microcontroller.reset()
-
-
-# ------------------run main------------------
-
-asyncio.run(main())
+if __name__ == "__main__":
+    main()
