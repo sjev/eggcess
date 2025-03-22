@@ -91,8 +91,8 @@ def hours2str(hours: float) -> str:
 
 def now() -> tuple[str, float]:
     """Return the current date as string and time as decimal hours"""
-    clk = rtc.RTC()
-    date = clk.datetime
+
+    date = time.localtime()
 
     # check that time is not 2000-01-01
     assert date.tm_year > 2000, "RTC not set"
@@ -118,3 +118,7 @@ def test() -> None:
         open_time, close_time = extract_floats_from_file(test_date)
         print(f"Time to read file: {time.monotonic() - t_start:.3f} s")
         print(f"Open time: {open_time}, Close time: {close_time}")
+
+
+if __name__ == "__main__":
+    test()
