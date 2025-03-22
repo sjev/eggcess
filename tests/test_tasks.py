@@ -1,5 +1,5 @@
 import pytest
-from src import tasks
+import tasks
 import door
 
 
