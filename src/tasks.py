@@ -58,3 +58,13 @@ class CloseDoorTask(Task):
             return
 
         logger.info("Closing door")
+
+
+def get_latest_task(tasks):
+    current_time = timing.now()
+    # Filter tasks that are scheduled before or at current time.
+    tasks_before = [task for task in tasks if task.exec_time <= current_time]
+    if tasks_before:
+        # Return the task with the maximum exec_time.
+        return max(tasks_before, key=lambda task: task.exec_time)
+    return None

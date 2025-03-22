@@ -134,3 +134,18 @@ def test_task_does_not_execute_twice(mocker):
 
     # No new logging should occur on second execution.
     mock_logger.assert_not_called()
+
+
+def test_get_latest_task(mocker):
+    open_task = tasks.OpenDoorTask(exec_time=5.0, door=None)
+    close_task = tasks.CloseDoorTask(exec_time=10.0, door=None)
+
+    tasks_list = [open_task, close_task]
+
+    mocker.patch("tasks.timing.now", return_value=11.0)
+    latest_task = tasks.get_latest_task(tasks_list)
+
+    mocker.patch("tasks.timing.now", return_value=6.0)
+    latest_task = tasks.get_latest_task(tasks_list)
+
+    assert latest_task == open_task
