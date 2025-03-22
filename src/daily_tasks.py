@@ -10,7 +10,7 @@ import door
 class Task:
     """A task that runs once a day at a specified time."""
 
-    def __init__(self, name: str, exec_time: float):
+    def __init__(self, name: str, exec_time: float | None):
 
         self.name = name
         self.exec_time = exec_time
@@ -22,6 +22,9 @@ class Task:
 
     def execute(self):
         """Execute the task if the current time matches the execution time."""
+        if self.exec_time is None:
+            return
+
         current_time = timing.now()
 
         if current_time >= self.exec_time and not self.is_executed:
@@ -33,7 +36,7 @@ class Task:
 class OpenDoorTask(Task):
     """Open the door at the specified time."""
 
-    def __init__(self, exec_time: float, door: door.Door):
+    def __init__(self, exec_time: float | None, door: door.Door):
         super().__init__("open_door", exec_time)
         self.door = door
 
@@ -48,7 +51,7 @@ class OpenDoorTask(Task):
 class CloseDoorTask(Task):
     """Close the door at the specified time."""
 
-    def __init__(self, exec_time: float, door: door.Door):
+    def __init__(self, exec_time: float | None, door: door.Door):
         super().__init__("close_door", exec_time)
         self.door = door
 
@@ -60,7 +63,7 @@ class CloseDoorTask(Task):
         logger.info("Closing door")
 
 
-def get_latest_task(tasks):
+def get_latest_task(tasks) -> Task | None:
     current_time = timing.now()
     # Filter tasks that are scheduled before or at current time.
     tasks_before = [task for task in tasks if task.exec_time <= current_time]

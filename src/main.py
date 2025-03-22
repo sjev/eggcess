@@ -22,7 +22,7 @@ import wifi
 import logger
 import timing
 from door import Door
-import daily_tasks
+from daily_tasks import OpenDoorTask, CloseDoorTask, get_latest_task
 
 __version__ = "2.1.0"
 
@@ -39,7 +39,8 @@ logger.info(f"*** system start  v{__version__}***")
 
 door = Door()
 led = door.stepper.pins[0]
-open_task = daily_tasks.OpenDoorTask(exec_time=None, door=door)
+open_task = OpenDoorTask(exec_time=None, door=door)
+close_task = CloseDoorTask(exec_time=None, door=door)
 
 
 def command_callback(topic, msg):  # pylint: disable=unused-argument
@@ -95,7 +96,7 @@ def report_status(p):
     print(msg)
 
 
-async def update_timing():
+def update_timing():
     """update time and open and close times"""
 
     try:
@@ -103,20 +104,15 @@ async def update_timing():
         logger.truncate_log()
 
         # get open and close times
-        date, hours = timing.time()
-        Params.date = date
-        Params.open_time, Params.close_time = timing.extract_floats_from_file(date)
+        date = timing.date()
+
+        open_task.exec_time, close_task.exec_time = timing.extract_floats_from_file(
+            date
+        )
 
         # update ntp time (may fail)
         print("updating time")
         timing.update_time()
-
-        # schedule the next update, approx 1 am tomorrow
-        delay_hours = 24 - hours + 1
-        print(f"next update in {delay_hours} hours")
-        logger.info(
-            f"time updated, open: {timing.hours2str(Params.open_time)}, close: {timing.hours2str(Params.close_time)}"
-        )
 
     except timing.MaxRetriesExceeded as e:
         logger.error(f"{type(e).__name__}: {e}")
@@ -126,10 +122,16 @@ def main():
     """main function"""
 
     logger.info("****** starting door ******")
+    update_timing()
+
+    tsk = get_latest_task([open_task, close_task])
+    if tsk is not None:
+        tsk.execute()
 
     try:
         while True:
-            pass
+            print(".", end="")
+            time.sleep(1)
 
     except Exception as e:
         logger.error(f"Main crashed: {type(e).__name__}: {e}")
