@@ -1,36 +1,33 @@
-"""class to manage the door"""
+"""Manage the door for CircuitPython."""
 
 import board
 import json
 
 from timing import time_str
 from uln2003 import Stepper, FULL_ROTATION
-import logger
 
 STATE_FILE = "door_state.json"
 
 DRIVE_PINS = [board.D0, board.D1, board.D2, board.D3]  # type: ignore
 
-
 MM_PER_REV = 19.6  # mm travel per revolution of the motor
 TRAVEL_MM = 330  # door travel distance in mm
 OPEN_EXTRA_MM = 10  # extra mm to open door, push against mechanical stop
-EXTRA_DELAY = 5  # time in seconds to add to open/close time to make sure we are past the decision boundary.
+EXTRA_DELAY = 5  # extra delay in seconds to ensure door state transition
 
-
-# door states
+# Door states
 STATE_OPEN = "open"
 STATE_CLOSED = "closed"
 STATE_MOVING = "moving"
 STATE_UNKNOWN = "unknown"
 
-# door directions
+# Door directions
 DIRECTION_OPEN = -1
 DIRECTION_CLOSE = 1
 
 
 class State:
-    """state of the door"""
+    """Represents the door state."""
 
     def __init__(self, name: str = STATE_UNKNOWN):
         self.name = name
@@ -39,129 +36,125 @@ class State:
         return self.name
 
     def __repr__(self):
-        return self.__str__()
+        return self.name
 
     @classmethod
     def load(cls) -> "State":
-        """read state from file"""
+        """Load state from file."""
         try:
             with open(STATE_FILE, "r") as f:
                 data = json.load(f)
-                print(f"read state {data}")
-                return State(data["state"])
+                print(f"Loaded state: {data}")
+                return cls(data.get("state", STATE_UNKNOWN))
         except OSError:
-            return State(STATE_UNKNOWN)
+            print("Failed to load state, returning unknown state")
+            return cls(STATE_UNKNOWN)
 
     def save(self):
-        """save state to file"""
-        print(f"saving state {self.name}")
+        """Save state to file."""
+        print(f"Saving state: {self.name}")
         data = {"state": self.name, "time": time_str()}
         with open(STATE_FILE, "w") as f:
             json.dump(data, f)
 
 
-def set_open():
-    """set the door state to open"""
-    state = State(STATE_OPEN)
-    state.save()
-
-
-def set_closed():
-    """set the door state to closed"""
-    state = State(STATE_CLOSED)
-    state.save()
-
-
 class Door:
-    """door interface"""
+    """Door interface for open/close actions."""
 
-    def __init__(self, auto_reset=True, save_state=True):
+    def __init__(self, auto_reset: bool = True):
         self.stepper = Stepper(DRIVE_PINS)
-
         self._state = State.load()
-        self._save_state = save_state  # save state to file?
-        logger.info(f"door state: {self._state}")
+        print(f"Initial door state: {self._state}")
 
-        if self.state in [STATE_UNKNOWN, STATE_MOVING] and auto_reset:
-            logger.info("resetting door")
+        if self.state in {STATE_UNKNOWN, STATE_MOVING} and auto_reset:
+            print("Resetting door")
             self.open()
 
     @property
     def state(self) -> str:
-        """return the current state"""
+        """Return the current door state."""
         return self._state.name
 
     @state.setter
-    def state(self, state: str):
-        """set the current state and save it to file"""
-        self._state = State(state)
-        if self._save_state:
-            self._state.save()
+    def state(self, new_state: str):
+        """Set a new door state and save it if needed."""
+        self._state = State(new_state)
+
+    def save_state(self):
+        """Save the current door state."""
+        self._state.save()
 
     def move(self, direction: int, distance_mm: float):
-        """move the door in the specified direction, provide feedback after each revolution"""
-        # convert mm to revolutions
+        """Move the door in the specified direction with feedback after each revolution."""
         revolutions = distance_mm / MM_PER_REV
+        print(
+            f"Moving: distance_mm={distance_mm}, direction={direction}, revolutions={revolutions:.2f}"
+        )
 
-        print(f"moving {distance_mm=} {direction=} {revolutions=} ")
-        for _ in range(int(revolutions)):
+        full_revs = int(revolutions)
+        for i in range(full_revs):
             self.stepper.step(FULL_ROTATION, direction)
-            print("revolutions: ", _ + 1)
+            print(f"Completed revolution {i + 1}")
 
-        # remainder
-        remainder = revolutions - int(revolutions)
+        remainder = revolutions - full_revs
         if remainder > 0:
-            self.stepper.step(int(remainder * FULL_ROTATION), direction)
-            print("remainder: ", remainder)
+            steps = int(remainder * FULL_ROTATION)
+            self.stepper.step(steps, direction)
+            print(f"Completed remainder: {remainder:.2f}")
 
     def open(self, distance_mm: float = TRAVEL_MM + OPEN_EXTRA_MM):
-        """open the door"""
-        logger.info("opening door")
+        """Open the door."""
+        print("Attempting to open door")
         if self.state == STATE_OPEN:
-            logger.info("door is already open")
+            print("Door is already open")
             return
 
         self.state = STATE_MOVING
         self.move(DIRECTION_OPEN, distance_mm)
         self.state = STATE_OPEN
-        logger.info("door is open")
+        print("Door is open")
 
     def close(self, distance_mm: float = TRAVEL_MM):
-        """close the door"""
-        logger.info("closing door")
+        """Close the door."""
+        print("Attempting to close door")
         if self.state == STATE_CLOSED:
-            logger.info("door is already closed")
+            print("Door is already closed")
             return
 
         self.state = STATE_MOVING
         self.move(DIRECTION_CLOSE, distance_mm)
         self.state = STATE_CLOSED
-        logger.info("door is closed")
+        print("Door is closed")
 
     def automate(self, time_now: float, time_open: float, time_close: float) -> float:
-        """opens or closes the door based on the time of day (decimal hours). Returns sleep duration in seconds until next event"""
+        """
+        Open or close the door based on the current time.
+        Returns the sleep duration (in seconds) until the next event.
+        """
         if time_now < time_open:
-            # Before open time
             self.close()
-            return (time_open - time_now) * 3600 + EXTRA_DELAY
+            sleep_secs = (time_open - time_now) * 3600 + EXTRA_DELAY
         elif time_open <= time_now < time_close:
-            # After open time and before close time
             self.open()
-            return (time_close - time_now) * 3600 + EXTRA_DELAY
+            sleep_secs = (time_close - time_now) * 3600 + EXTRA_DELAY
         else:
-            # After close time, schedule for next open time (next day)
             self.close()
-            return (24 - time_now + time_open) * 3600 + EXTRA_DELAY
+            sleep_secs = (24 - time_now + time_open) * 3600 + EXTRA_DELAY
+
+        return sleep_secs
 
 
 def test():
-    """test the door, import door and run door.test() in repl"""
-    door = Door(auto_reset=False, save_state=False)
-    door.state = State(STATE_UNKNOWN)
-    distance_mm = 10
+    """Test the door functionality."""
 
-    door.open(distance_mm)
-    door.close(distance_mm)
+    print("********* Running door test *********")
+    door = Door(auto_reset=False)
+    door.state = STATE_UNKNOWN
+    test_distance = 10
+
+    door.open(test_distance)
+    door.close(test_distance)
+    door.save_state()
 
 
 if __name__ == "__main__":
