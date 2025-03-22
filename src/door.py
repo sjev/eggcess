@@ -1,7 +1,6 @@
-""" class to manage the door """
+"""class to manage the door"""
 
 import board
-import asyncio
 import json
 
 from timing import time_str
@@ -83,10 +82,9 @@ class Door:
         self._save_state = save_state  # save state to file?
         logger.info(f"door state: {self._state}")
 
-        if self.state in [STATE_UNKNOWN, STATE_MOVING]:
+        if self.state in [STATE_UNKNOWN, STATE_MOVING] and auto_reset:
             logger.info("resetting door")
-            if auto_reset:
-                self.open()
+            self.open()
 
     @property
     def state(self) -> str:
@@ -105,7 +103,7 @@ class Door:
         # convert mm to revolutions
         revolutions = distance_mm / MM_PER_REV
 
-        print(f"moving {direction} for {revolutions} revolutions")
+        print(f"moving {distance_mm=} {direction=} {revolutions=} ")
         for _ in range(int(revolutions)):
             self.stepper.step(FULL_ROTATION, direction)
             print("revolutions: ", _ + 1)
@@ -158,10 +156,13 @@ class Door:
 
 def test():
     """test the door, import door and run door.test() in repl"""
-    door = Door(save_state=False)
-    distance_mm = 100
+    door = Door(auto_reset=False, save_state=False)
+    door.state = State(STATE_UNKNOWN)
+    distance_mm = 10
 
     door.open(distance_mm)
-    asyncio.sleep(2)
     door.close(distance_mm)
-    asyncio.sleep(2)
+
+
+if __name__ == "__main__":
+    test()
