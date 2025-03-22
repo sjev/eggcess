@@ -126,23 +126,6 @@ class Door:
         self.state = STATE_CLOSED
         print("Door is closed")
 
-    def automate(self, time_now: float, time_open: float, time_close: float) -> float:
-        """
-        Open or close the door based on the current time.
-        Returns the sleep duration (in seconds) until the next event.
-        """
-        if time_now < time_open:
-            self.close()
-            sleep_secs = (time_open - time_now) * 3600 + EXTRA_DELAY
-        elif time_open <= time_now < time_close:
-            self.open()
-            sleep_secs = (time_close - time_now) * 3600 + EXTRA_DELAY
-        else:
-            self.close()
-            sleep_secs = (24 - time_now + time_open) * 3600 + EXTRA_DELAY
-
-        return sleep_secs
-
 
 def test():
     """Test the door functionality."""
