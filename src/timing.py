@@ -89,18 +89,20 @@ def hours2str(hours: float) -> str:
     return f"{whole_hours:02}:{minutes:02}:{seconds:02}"
 
 
-def now() -> tuple[str, float]:
-    """Return the current date as string and time as decimal hours"""
+def date() -> str:
+    """Return the current date as string"""
 
-    date = time.localtime()
+    ts = time.localtime()
 
-    # check that time is not 2000-01-01
-    assert date.tm_year > 2000, "RTC not set"
+    return f"{ts.tm_year:04d}-{ts.tm_mon:02d}-{ts.tm_mday:02d}"
 
-    date_str = f"{date.tm_year:04d}-{date.tm_mon:02d}-{date.tm_mday:02d}"
-    time_decimal = date.tm_hour + date.tm_min / 60 + date.tm_sec / 3600
 
-    return date_str, time_decimal
+def now() -> float:
+    """Return the current time as decimal hours"""
+
+    ts = time.localtime()
+
+    return ts.tm_hour + ts.tm_min / 60 + ts.tm_sec / 3600
 
 
 # ------------------------------ testing --------------------------------
@@ -108,7 +110,8 @@ def test() -> None:
     """basic testing function"""
     print("Running test function")
     update_time()
-    today, now_time = now()
+    today = date()
+    now_time = now()
     print(f"Today: {today}, Now: {now_time}")
 
     test_dates = [today, "2030-02-27"]
