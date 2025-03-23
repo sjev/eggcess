@@ -19,7 +19,7 @@ TOLERANCE = 1 / 60
 )
 def test_sunrise(mocker, lat: float, lon: float, test_date: datetime.date) -> None:
     # Override os.getenv to simulate a correct list being returned
-    mocker.patch("os.getenv", return_value=[lat, lon])
+    mocker.patch("os.getenv", return_value=f"[{lat},{lon}]")
 
     # Calculate sunrise using the new function interface
     result = sunrise(test_date.year, test_date.month, test_date.day)
@@ -46,7 +46,7 @@ def test_sunrise(mocker, lat: float, lon: float, test_date: datetime.date) -> No
 )
 def test_sunset(mocker, lat: float, lon: float, test_date: datetime.date) -> None:
     # Override os.getenv to simulate the correct location list
-    mocker.patch("os.getenv", return_value=[lat, lon])
+    mocker.patch("os.getenv", return_value=f"[{lat},{lon}]")
 
     # Calculate sunset using the new function interface
     result = sunset(test_date.year, test_date.month, test_date.day)

@@ -20,12 +20,14 @@ def forceRange(v: float, max_value: int) -> float:
 
 
 def _get_location() -> tuple[float, float]:
-    """Retrieve the location (lat, lon) from the LOCATION_LATLON environment variable."""
+    """Retrieve the location (lat, lon) from the LOCATION_LATLON environment variable. Stored as csv."""
     # os.getenv("LOCATION_LATLON") already produces a correct list.
     loc = os.getenv("LOCATION_LATLON")
     if loc is None:
         raise ValueError("LOCATION_LATLON environment variable is not set")
-    return float(loc[0]), float(loc[1])
+    lat, lon = [float(val) for val in loc.strip().strip("[]").split(",")]
+
+    return lat, lon
 
 
 def _calc_sun_time(
