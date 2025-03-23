@@ -31,17 +31,40 @@ that I've built, with the main goal to improve *reliability* ... and a good reas
 
 ## Quick start
 
+**prepare pc**
+
+* install dev requirements `pip install -r requirements_dev.txt`
+
+
+**prepare board**
+
+0. connect board via usb.
+1. install circuitpython on the board
+2. create `settings.toml` based on `config/settings.toml.example`. Copy it to board with `ampy put settings.toml`.
+3. hard reset board.
+
+The board should now have wifi connection
+
+
+* check that the board has wifi connection. connecting with `mpremote` should provide REPL and set terminal header to board ip.
+* remove `code.py` from the board
+* Upload source files and lookup table:
+  - serial: `invoke upload-src` , `invoke upload-lut`
+  - OR copy them manually through web interface. Note: lut is located in `calculations/sun_lut.csv`
+* install required bundles with `circup  --host <ip> --password <pass> install -r cp_requirements.txt `
+
+
+
+## Development
 1. Start up VSCode devcontainer. The `Dockerfile` contains all the development goodies,
 like  stubs.
 2. generate lookup table for open and close times using `calculations/calculate_lut.ipynb`
-3. adjust secrets in
+
 
 
 ## Uploading files
 
-* bundles can be managed with `circup` over wifi. use with `--host` and `--password` option.
 * use `invoke` to sync files with the device.
-
 
       pull         Pull files from the device to the local 'dest' directory, ignoring hidden files and .syncignore patterns.
       push         Push files from the local 'src' directory to the device, ignoring hidden files and .syncignore patterns.
