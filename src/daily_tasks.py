@@ -2,6 +2,7 @@
 Tasks module for scheduling and executing daily tasks.
 """
 
+import time
 import logger
 import timing
 import door
@@ -11,17 +12,23 @@ class Task:
     """A task that runs once a day at a specified time."""
 
     def __init__(self, name: str, exec_time: float | None):
-
         self.name = name
         self.exec_time = exec_time
-        self.is_executed = False
+        self._last_executed = -1
+
+    @property
+    def is_executed(self) -> bool:
+        """Returns True if the task has been executed today."""
+        return self._last_executed == time.localtime().tm_yday
 
     def main(self):
         """Main task function."""
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
     def execute(self):
-        """Execute the task if the current time matches the execution time."""
+        """Execute the task if the current time matches the execution time.
+        Automatically resets execution flag on a new day.
+        """
         if self.exec_time is None:
             return
 
@@ -30,7 +37,7 @@ class Task:
         if current_time >= self.exec_time and not self.is_executed:
             logger.info(f"Executing task: {self.name} {current_time=}")
             self.main()
-            self.is_executed = True
+            self._last_executed = time.localtime().tm_yday
 
 
 class OpenDoorTask(Task):
