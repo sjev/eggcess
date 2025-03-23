@@ -1,4 +1,4 @@
-""" simple logging module """
+"""simple logging module"""
 
 import os
 import time
@@ -6,10 +6,15 @@ import time
 LOG_FILE = "log.txt"
 
 
+def _log_string(message: str, level: str = "INFO") -> str:
+    """Return a formatted log string."""
+    utc_time = time.localtime()
+    return f"{utc_time[0]-2000:02}-{utc_time[1]:02}-{utc_time[2]:02} {utc_time[3]:02}:{utc_time[4]:02}:{utc_time[5]:02} [{level}] {message}"
+
+
 def log_to_file(message, level: str = "INFO", file=LOG_FILE):
     """log a message to a file"""
-    utc_time = time.localtime()
-    log_str = f"{utc_time[0]-2000:02}-{utc_time[1]:02}-{utc_time[2]:02} {utc_time[3]:02}:{utc_time[4]:02}:{utc_time[5]:02} [{level}] {message}"
+    log_str = _log_string(message, level)
 
     print(log_str)
     with open(file, "a") as f:
@@ -29,6 +34,11 @@ def warning(message):
 def error(message):
     """log error message"""
     log_to_file(message, "ERROR")
+
+
+def debug(message):
+    """log debug message to console, not to file"""
+    print(_log_string(message, "DEBUG"))
 
 
 def truncate_log(file=LOG_FILE, max_lines=300, keep_lines=50):
