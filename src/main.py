@@ -18,7 +18,8 @@ import json
 import os
 import time
 
-import microcontroller
+from microcontroller import watchdog as wdt
+from watchdog import WatchDogMode
 import wifi
 
 import logger
@@ -27,7 +28,7 @@ import timing
 from daily_tasks import CloseDoorTask, OpenDoorTask, get_latest_task
 from door import Door
 
-__version__ = "2.2.0"
+__version__ = "2.3.0"
 
 
 DEVICE_NAME = os.getenv("CIRCUITPY_WEB_INSTANCE_NAME", "eggcess")
@@ -39,10 +40,19 @@ logger.debug(f"{DEVICE_NAME=}")
 logger.debug(f"{STATUS_TOPIC=}")
 logger.debug(f"{STATE_TOPIC=}")
 
+logger.info(f"*** system start  v{__version__}***")
 
+# set watchdog
+if wdt is None:
+    raise RuntimeError("Watchdog not available")
+
+wdt.timeout = 300  # 5 minutes
+wdt.mode = WatchDogMode.RESET
+wdt.feed()
+
+timing.update_ntp_time()
 T_START = time.time()
 
-logger.info(f"*** system start  v{__version__}***")
 
 door = Door()
 led = door.stepper.pins[0]
@@ -132,7 +142,7 @@ def handle_mqtt(client):
             time.sleep(5)
             return
 
-    client.loop(timeout=1.0)
+    client.loop(timeout=5.0)
 
     # send status
     client.publish(STATUS_TOPIC, status_msg())
@@ -141,8 +151,6 @@ def handle_mqtt(client):
 def main():
     """main function"""
 
-    logger.info("****** starting door ******")
-    timing.update_ntp_time()
     update_door_times()
 
     tsk = get_latest_task([open_task, close_task])
@@ -154,7 +162,7 @@ def main():
     try:
         while True:
             handle_mqtt(mqtt_client)
-
+            wdt.feed()
             # execute tasks
             open_task.execute()
             close_task.execute()
