@@ -14,23 +14,30 @@ home assistant rest switch https://www.home-assistant.io/integrations/switch.res
 """
 
 import gc
+import json
+import os
 import time
 
 import microcontroller
 import wifi
 
 import logger
+import mqtt
 import timing
+from daily_tasks import CloseDoorTask, OpenDoorTask, get_latest_task
 from door import Door
-from daily_tasks import OpenDoorTask, CloseDoorTask, get_latest_task
 
-__version__ = "2.1.0"
+__version__ = "2.2.0"
 
 
-DEVICE_NAME = "eggcess_2"
-STATUS_TOPIC = f"/status/{DEVICE_NAME}"
-COMMAND_TOPIC = f"/{DEVICE_NAME}/cmd"
-STATE_TOPIC = f"/{DEVICE_NAME}/state"
+DEVICE_NAME = os.getenv("CIRCUITPY_WEB_INSTANCE_NAME", "eggcess")
+STATUS_TOPIC = os.getenv("STATUS_TOPIC", f"/{DEVICE_NAME}/status")
+STATE_TOPIC = os.getenv("STATE_TOPIC", f"/{DEVICE_NAME}/state")
+
+# show topics
+logger.debug(f"{DEVICE_NAME=}")
+logger.debug(f"{STATUS_TOPIC=}")
+logger.debug(f"{STATE_TOPIC=}")
 
 
 T_START = time.time()
@@ -43,9 +50,9 @@ open_task = OpenDoorTask(exec_time=None, door=door)
 close_task = CloseDoorTask(exec_time=None, door=door)
 
 
-def command_callback(topic, msg):  # pylint: disable=unused-argument
-    print(f"Received command: {msg}")
-    command = msg.decode()
+def command_callback(client, topic, command):  # pylint: disable=unused-argument
+    print(f"Received command: {command}")
+
     if command == "open":
         logger.info("opening by command")
         door.open()
@@ -56,7 +63,7 @@ def command_callback(topic, msg):  # pylint: disable=unused-argument
         print("invalid command")
 
 
-def report_status(p):
+def status_msg() -> str:
     """report status"""
 
     # Pre-initialize the message dictionary with static values
@@ -78,22 +85,26 @@ def report_status(p):
 
     msg.update(
         {
-            "ip": wifi.radio.ipv4_address,
-            "uptime_h": round(uptime / 3600, 3),
-            "mem_free": gc.mem_free(),
-            "rssi": network.rssi,
-            "date": Params.date,
+            "ip": str(wifi.radio.ipv4_address),
+            "uptime_h": round(uptime / 3600, 3),  # type: ignore
+            "mem_free": gc.mem_free(),  # type: ignore
+            "rssi": network.rssi,  # type: ignore
+            "date": timing.date(),
             "time": f"{utc_time[3]:02}:{utc_time[4]:02}:{utc_time[5]:02}",
-            "open": (timing.hours2str(Params.open_time) if Params.open_time else None),
+            "open": (
+                timing.hours2str(open_task.exec_time) if open_task.exec_time else "None"
+            ),
             "close": (
-                timing.hours2str(Params.close_time) if Params.close_time else None
+                timing.hours2str(close_task.exec_time)
+                if close_task.exec_time
+                else "None"
             ),
             "door_state": door.state,  # update door state in case it changes
         }
     )
-
-    # Print status to console, to avoid ampy timeout
-    print(msg)
+    status = json.dumps(msg)
+    logger.debug(f"status: {status}")
+    return status
 
 
 def update_door_times():
@@ -109,9 +120,22 @@ def update_door_times():
 
     open_task.exec_time, close_task.exec_time = timing.extract_floats_from_file(date)
 
-    # update ntp time (may fail)
-    print("updating time")
-    timing.update_ntp_time()
+
+def handle_mqtt(client):
+    """perform mqtt tasks, blocking, delays main loop."""
+    # check connection
+    if not client.is_connected():
+        try:
+            client.connect()
+        except Exception as e:
+            logger.debug(f"MQTT connection failed: {type(e).__name__}: {e}")
+            time.sleep(5)
+            return
+
+    client.loop(timeout=1.0)
+
+    # send status
+    client.publish(STATUS_TOPIC, status_msg())
 
 
 def main():
@@ -125,17 +149,18 @@ def main():
     if tsk is not None:
         tsk.execute()
 
+    mqtt_client = mqtt.get_client(on_message=command_callback)
+
     try:
-        pass
-        # while True:
-        #     print(".", end="")
-        #     time.sleep(1)
+        while True:
+            handle_mqtt(mqtt_client)
+
+            # execute tasks
+            open_task.execute()
+            close_task.execute()
 
     except Exception as e:
         logger.error(f"Main crashed: {type(e).__name__}: {e}")
-
-        time.sleep(5)
-        microcontroller.reset()
 
     logger.info("Main loop ended")
 
