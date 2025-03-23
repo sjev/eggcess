@@ -107,13 +107,13 @@ def _calc_sun_time(
     return UT  # decimal hours
 
 
-def sunrise(year: int, month: int, day: int) -> dict[str, float]:
+def sunrise(year: int, month: int, day: int) -> float:
     """Calculate sunrise time for the given date using location from LOCATION_LATLON."""
     lat, lon = _get_location()
     return _calc_sun_time(True, year, month, day, lat, lon)
 
 
-def sunset(year: int, month: int, day: int) -> dict[str, float]:
+def sunset(year: int, month: int, day: int) -> float:
     """Calculate sunset time for the given date using location from LOCATION_LATLON."""
     lat, lon = _get_location()
     return _calc_sun_time(False, year, month, day, lat, lon)
