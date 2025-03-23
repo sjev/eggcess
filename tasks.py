@@ -2,7 +2,7 @@ import os
 import sys
 from pathlib import Path
 from fnmatch import fnmatch
-
+from click import prompt
 import requests
 from invoke import task
 
@@ -32,6 +32,25 @@ def read_syncignore():
                 if line.strip() and not line.startswith("#")
             ]
     return []
+
+
+@task
+def clean(ctx):
+    """
+    Remove all files and directories that are not under version control to ensure a pristine working environment.
+    Use caution as this operation cannot be undone and might remove untracked files.
+
+    """
+
+    ctx.run("git clean -nfdx")
+
+    if (
+        prompt(
+            "Are you sure you want to remove all untracked files? (y/n)", default="n"
+        )
+        == "y"
+    ):
+        ctx.run("git clean -fdx")
 
 
 @task
