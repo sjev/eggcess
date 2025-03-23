@@ -29,6 +29,8 @@ class Task:
         """Execute the task if the current time matches the execution time.
         Automatically resets execution flag on a new day.
         """
+        logger.debug(f"Executing: {self}")
+
         if self.exec_time is None:
             return
 
@@ -38,6 +40,11 @@ class Task:
             logger.info(f"Executing task: {self.name} {current_time=}")
             self.main()
             self._last_executed = time.localtime().tm_yday
+
+    def __str__(self):
+        return (
+            f"{self.name} {self.exec_time=} {self.is_executed=} {self._last_executed=}"
+        )
 
 
 class OpenDoorTask(Task):
