@@ -1,13 +1,45 @@
 import pytest
+import time
 import daily_tasks
 import door
 from unittest.mock import Mock
+
+
+@pytest.fixture(autouse=True)
+def patch_logger_log_to_file(mocker):
+    mocker.patch("logger.log_to_file", new=Mock())
 
 
 class FakeDoor(Mock):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.state = door.STATE_CLOSED
+
+
+# Dummy task subclass for testing the is_executed property behavior.
+class DummyTask(daily_tasks.Task):
+    def __init__(self, name: str, exec_time: float | None):
+        super().__init__(name, exec_time)
+        self.executed_flag = False
+
+    def main(self):
+        self.executed_flag = True
+
+
+def test_skip_task_when_exec_time_is_none(mocker):
+    mocker.patch("daily_tasks.timing.now", return_value=10.0)
+
+    task = DummyTask("Dummy", None)
+    task.execute()
+    assert not task.is_executed
+
+
+def test_execute_task_when_exec_time_is_now(mocker):
+    mocker.patch("daily_tasks.timing.now", return_value=10.0)
+
+    task = DummyTask("Dummy", 10.0)
+    task.execute()
+    assert task.is_executed
 
 
 def test_open_door_task_executes_when_door_closed(mocker):
@@ -122,3 +154,80 @@ def test_get_latest_task(mocker):
     mocker.patch("daily_tasks.timing.now", return_value=6.0)
     latest_task = daily_tasks.get_latest_task(tasks_list)
     assert latest_task == open_task
+
+    mocker.patch("daily_tasks.timing.now", return_value=4.0)
+    latest_task = daily_tasks.get_latest_task(tasks_list)
+    assert latest_task is None
+
+
+# -----------------------set clock task-----------------------
+def test_set_clock_task_success(mocker):
+    # Ensure the task executes successfully.
+    mocker.patch("daily_tasks.timing.now", return_value=2.0)
+    update_ntp_mock = mocker.patch("daily_tasks.timing.update_ntp_time")
+    mock_info = mocker.patch("daily_tasks.logger.info")
+    mock_error = mocker.patch("daily_tasks.logger.error")
+
+    task = daily_tasks.SetClockTask(exec_time=1.0)
+    task.execute()
+
+    # Verify that "Setting clock" is logged and the NTP update was called.
+    mock_info.assert_any_call("Setting clock")
+    update_ntp_mock.assert_called_once()
+    mock_error.assert_not_called()
+    assert task.is_executed
+
+
+def test_set_clock_task_failure(mocker):
+    # Simulate a failure in updating the clock.
+    mocker.patch("daily_tasks.timing.now", return_value=2.0)
+    mocker.patch(
+        "daily_tasks.timing.update_ntp_time",
+        side_effect=daily_tasks.timing.MaxRetriesExceeded,
+    )
+    mock_info = mocker.patch("daily_tasks.logger.info")
+    mock_error = mocker.patch("daily_tasks.logger.error")
+
+    task = daily_tasks.SetClockTask(exec_time=1.0)
+    task.execute()
+
+    # Verify that "Setting clock" is logged, then the error is logged.
+    mock_info.assert_any_call("Setting clock")
+    mock_error.assert_any_call("Failed to set clock from NTP server")
+    assert task.is_executed
+
+
+# -----------------------test daily reset-----------------------
+
+
+def fake_localtime(day: int):
+    """Helper to create a fake time.struct_time with the given day-of-year."""
+    # (year, month, day, hour, minute, second, weekday, yearday, isdst)
+    return time.struct_time((2025, 1, 1, 0, 0, 0, 0, day, 0))
+
+
+def test_is_executed_default():
+    """Ensure that before execution, is_executed is False (default _last_executed = -1)."""
+    task = DummyTask("Dummy", 5.0)
+    assert not task.is_executed, "Task should not be marked as executed before running."
+
+
+def test_task_execution_resets_is_executed(mocker):
+    """
+    Test that after execution, is_executed becomes True,
+    and when a new day is simulated, is_executed becomes False.
+    """
+    # Simulate day 100 for execution.
+    mocker.patch("time.localtime", return_value=fake_localtime(100))
+    mocker.patch("daily_tasks.timing.now", return_value=10.0)
+
+    task = DummyTask("Dummy", 5.0)
+    assert not task.is_executed, "Initially, task should not be executed."
+
+    task.execute()
+    assert task.executed_flag, "Task main() should have been called."
+    assert task.is_executed, "After execution, task should be marked as executed."
+
+    # Now simulate a new day (day 101); is_executed should automatically reset.
+    mocker.patch("time.localtime", return_value=fake_localtime(101))
+    assert not task.is_executed, "On a new day, task should not be marked as executed."
