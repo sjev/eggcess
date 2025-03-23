@@ -10,6 +10,11 @@ def patch_logger_log_to_file(mocker):
     mocker.patch("logger.log_to_file", new=Mock())
 
 
+@pytest.fixture(autouse=True)
+def patch_rtc_is_set(mocker):
+    mocker.patch("daily_tasks.timing.is_rtc_set", return_value=True)
+
+
 class FakeDoor(Mock):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

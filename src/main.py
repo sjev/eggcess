@@ -2,15 +2,6 @@
 
 main module for coop_door
 
-
-mqtt was difficult to get stable. On micropython door stops reacting after some time to commands.
-On circuitpython connection errors are difficult to recover.
-
-
-
-home assistant rest switch https://www.home-assistant.io/integrations/switch.rest/
-
-
 """
 
 import gc
@@ -25,10 +16,16 @@ import wifi
 import logger
 import mqtt
 import timing
-from daily_tasks import CloseDoorTask, OpenDoorTask, SetClockTask, init_open_close
+from daily_tasks import (
+    CloseDoorTask,
+    OpenDoorTask,
+    SetClockTask,
+    UpdateDoorTimesTask,
+    init_open_close,
+)
 from door import Door
 
-__version__ = "2.4.0"
+__version__ = "3.0.0"
 
 
 DEVICE_NAME = os.getenv("CIRCUITPY_WEB_INSTANCE_NAME", "eggcess")
@@ -37,6 +34,13 @@ STATE_TOPIC = os.getenv("STATE_TOPIC", f"/{DEVICE_NAME}/state")
 
 # set time
 timing.update_ntp_time()
+
+# check that clock is set
+if not timing.is_rtc_set():
+    logger.error("RTC not set")
+    raise RuntimeError("RTC not set")
+
+
 T_START = time.time()
 
 # show topics
@@ -50,16 +54,25 @@ logger.info(f"*** system start  v{__version__}***")
 if wdt is None:
     raise RuntimeError("Watchdog not available")
 
-wdt.timeout = 300  # 5 minutes
-wdt.mode = WatchDogMode.RESET
-wdt.feed()
+try:
+    wdt.timeout = 300.0  # 5 minutes
+    wdt.mode = WatchDogMode.RESET
+    wdt.feed()
+except Exception as e:
+    logger.error(f"Could not init watchdog: {e}")
 
 
 door = Door()
 led = door.stepper.pins[0]
+
+
+# create tasks
 open_task = OpenDoorTask(exec_time=None, door=door)
 close_task = CloseDoorTask(exec_time=None, door=door)
 set_clock_task = SetClockTask(exec_time=1.0)
+set_door_timing_task = UpdateDoorTimesTask(0.1, open_task, close_task)
+
+all_tasks = [open_task, close_task, set_clock_task, set_door_timing_task]
 
 
 def command_callback(client, topic, command):  # pylint: disable=unused-argument
@@ -119,27 +132,6 @@ def status_msg() -> str:
     return status
 
 
-def update_door_times():
-    """update time and open and close times"""
-
-    # check that clock is set
-    if not timing.is_rtc_set():
-        logger.error("RTC not set")
-        raise RuntimeError("RTC not set")
-
-    # get open and close times
-    date = timing.date()
-
-    open_time, close_time = timing.extract_floats_from_file(date)
-
-    logger.info(
-        f"{open_time=} ({timing.hours2str(open_time)}), {close_time=} ({timing.hours2str(close_time)})"
-    )
-
-    open_task.exec_time = open_time
-    close_task.exec_time = close_time
-
-
 def handle_mqtt(client):
     """perform mqtt tasks, blocking, delays main loop."""
     # check connection
@@ -160,7 +152,7 @@ def handle_mqtt(client):
 def main():
     """main function"""
 
-    update_door_times()
+    set_door_timing_task.execute()
 
     init_open_close(open_task, close_task)
 
@@ -171,9 +163,8 @@ def main():
             handle_mqtt(mqtt_client)
             wdt.feed()
             # execute tasks
-            set_clock_task.execute()
-            open_task.execute()
-            close_task.execute()
+            for task in all_tasks:
+                task.execute()
 
     except Exception as e:
         logger.error(f"Main crashed: {type(e).__name__}: {e}")

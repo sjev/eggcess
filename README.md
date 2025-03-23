@@ -12,6 +12,7 @@ that I've built, with the main goal to improve *reliability* ... and a good reas
 * sensorless operation - no risk of sensor malfunction
 * safe torque - no risk of breaking something if software malfunctions
 * stand-alone operation - can go without wifi connection for a long time
+* calculation of sunrise and sunset times
 * auto-recovery - automatic recalibration if power was lost during movement
 * MQTT interface - connect to anything
 * logging saved to non-volatile memory
@@ -49,15 +50,14 @@ The board should now have wifi connection
 * check that the board has wifi connection. connecting with `mpremote` should provide REPL and set terminal header to board ip.
 * remove `code.py` from the board
 * Upload source files and lookup table:
-  - serial: `invoke upload-src` , `invoke upload-lut`
-  - OR copy them manually through web interface. Note: lut is located in `calculations/sun_lut.csv`
+  - serial: `invoke upload-src`
+  - OR copy them manually through web interface.
 * install required bundles with `circup  --host <ip> --password <pass> install -r cp_requirements.txt `
 
 
 
 ## Development
-1. Start up VSCode devcontainer. The `Dockerfile` contains all the development goodies,
-like  stubs.
+1. Start up VSCode devcontainer. The `Dockerfile` contains all the development goodies, like  stubs.
 2. generate lookup table for open and close times using `calculations/calculate_lut.ipynb`
 
 

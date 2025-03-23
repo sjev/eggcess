@@ -1,4 +1,5 @@
 autoflake
+astral
 black
 bump2version
 circuitpython-stubs

@@ -2,10 +2,15 @@
 Tasks module for scheduling and executing daily tasks.
 """
 
+import os
 import time
 import logger
 import timing
 import door
+import sun
+
+BEFORE_SUNRISE = os.getenv("BEFORE_SUNRISE", 0.0)
+AFTER_SUNSET = os.getenv("AFTER_SUNSET", 0.0)
 
 
 class Task:
@@ -101,8 +106,37 @@ class SetClockTask(Task):
             logger.error("Failed to set clock from NTP server")
 
 
+class UpdateDoorTimesTask(Task):
+    """Update open and close times from rise and set times"""
+
+    def __init__(
+        self, exec_time: float, open_task: OpenDoorTask, close_task: CloseDoorTask
+    ):
+        super().__init__("update_door_times", exec_time)
+        self.open_task = open_task
+        self.close_task = close_task
+
+    def main(self):
+        """Update open and close times."""
+
+        ts = time.localtime()
+
+        open_time = sun.sunrise(ts.tm_year, ts.tm_mon, ts.tm_mday) - BEFORE_SUNRISE
+        close_time = sun.sunset(ts.tm_year, ts.tm_mon, ts.tm_mday) + AFTER_SUNSET
+
+        logger.info(
+            f"Updated door times: {timing.hours2str(open_time)}, {timing.hours2str(close_time)}"
+        )
+        self.open_task.exec_time = open_time
+        self.close_task.exec_time = close_time
+
+
 def init_open_close(open_task: Task, close_task: Task):
     """Initialize the open and close tasks."""
+
+    if not timing.is_rtc_set():
+        raise RuntimeError("RTC not set")
+
     now = timing.now()
 
     if open_task.exec_time is None or close_task.exec_time is None:
