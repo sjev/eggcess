@@ -7,6 +7,8 @@ which is expected to be a list like [lat, lon]. Works on CircuitPython.
 import math
 import os
 
+ZENITH: float = 90.8
+
 
 def forceRange(v: float, max_value: int) -> float:
     """Force v to be >= 0 and < max_value."""
@@ -33,7 +35,6 @@ def _calc_sun_time(
     day: int,
     lat: float,
     lon: float,
-    zenith: float = 90.8,
 ) -> dict[str, float]:
     """Calculate sunrise or sunset time using the given date and location."""
     TO_RAD: float = math.pi / 180
@@ -77,7 +78,7 @@ def _calc_sun_time(
     cosDec: float = math.cos(math.asin(sinDec))
 
     # Calculate the Sun's local hour angle
-    cosH: float = (math.cos(TO_RAD * zenith) - (sinDec * math.sin(TO_RAD * lat))) / (
+    cosH: float = (math.cos(TO_RAD * ZENITH) - (sinDec * math.sin(TO_RAD * lat))) / (
         cosDec * math.cos(TO_RAD * lat)
     )
 
@@ -107,16 +108,16 @@ def _calc_sun_time(
     return {"decimal": UT, "hr": hr, "min": minutes}
 
 
-def sunrise(year: int, month: int, day: int, zenith: float = 90.8) -> dict[str, float]:
+def sunrise(year: int, month: int, day: int) -> dict[str, float]:
     """Calculate sunrise time for the given date using location from LOCATION_LATLON."""
     lat, lon = _get_location()
-    return _calc_sun_time(True, year, month, day, lat, lon, zenith)
+    return _calc_sun_time(True, year, month, day, lat, lon)
 
 
-def sunset(year: int, month: int, day: int, zenith: float = 90.8) -> dict[str, float]:
+def sunset(year: int, month: int, day: int) -> dict[str, float]:
     """Calculate sunset time for the given date using location from LOCATION_LATLON."""
     lat, lon = _get_location()
-    return _calc_sun_time(False, year, month, day, lat, lon, zenith)
+    return _calc_sun_time(False, year, month, day, lat, lon)
 
 
 if __name__ == "__main__":  # pragma: no cover
