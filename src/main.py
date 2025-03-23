@@ -28,12 +28,16 @@ import timing
 from daily_tasks import CloseDoorTask, OpenDoorTask, get_latest_task
 from door import Door
 
-__version__ = "2.3.0"
+__version__ = "2.3.1"
 
 
 DEVICE_NAME = os.getenv("CIRCUITPY_WEB_INSTANCE_NAME", "eggcess")
 STATUS_TOPIC = os.getenv("STATUS_TOPIC", f"/{DEVICE_NAME}/status")
 STATE_TOPIC = os.getenv("STATE_TOPIC", f"/{DEVICE_NAME}/state")
+
+# set time
+timing.update_ntp_time()
+T_START = time.time()
 
 # show topics
 logger.debug(f"{DEVICE_NAME=}")
@@ -49,9 +53,6 @@ if wdt is None:
 wdt.timeout = 300  # 5 minutes
 wdt.mode = WatchDogMode.RESET
 wdt.feed()
-
-timing.update_ntp_time()
-T_START = time.time()
 
 
 door = Door()
