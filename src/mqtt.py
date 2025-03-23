@@ -5,15 +5,8 @@ import time
 import adafruit_minimqtt.adafruit_minimqtt as mqtt
 import logger
 
-
-MQTT_BROKER = os.getenv("MQTT_BROKER")
-MQTT_USER = os.getenv("MQTT_USER")
-MQTT_PASS = os.getenv("MQTT_PASS")
-CMD_TOPIC = os.getenv("CMD_TOPIC")
-
-# check that the environment variables are set
-if not all([MQTT_BROKER, MQTT_USER, MQTT_PASS]):
-    raise RuntimeError("MQTT_BROKER, MQTT_USER, and MQTT_PASS must be set")
+DEVICE_NAME = os.getenv("CIRCUITPY_WEB_INSTANCE_NAME", "eggcess")
+CMD_TOPIC = os.getenv("CMD_TOPIC", f"/{DEVICE_NAME}/cmd")
 
 
 def on_connect(mqtt_client, userdata, flags, rc):
@@ -45,10 +38,18 @@ def get_client(on_message=None):
     """client factory"""
     pool = socketpool.SocketPool(wifi.radio)
 
+    mqtt_broker = os.getenv("MQTT_BROKER")
+    mqtt_user = os.getenv("MQTT_USER")
+    mqtt_pass = os.getenv("MQTT_PASS")
+
+    # check that the environment variables are set
+    if not all([mqtt_broker, mqtt_user, mqtt_pass]):
+        raise ValueError("MQTT_BROKER, MQTT_USER, and MQTT_PASS must be set")
+
     client = mqtt.MQTT(
-        broker=MQTT_BROKER,
-        username=MQTT_USER,
-        password=MQTT_PASS,
+        broker=mqtt_broker,
+        username=mqtt_user,
+        password=mqtt_pass,
         socket_pool=pool,
     )
 
@@ -74,6 +75,9 @@ def test() -> None:
     """Test the mqtt module"""
 
     print("Testing mqtt")
+
+    global CMD_TOPIC
+    CMD_TOPIC = "/test/cmd"
 
     client = get_client(on_message=echo_message)
     client.connect()
