@@ -22,8 +22,7 @@ def test_sunrise(mocker, lat: float, lon: float, test_date: datetime.date) -> No
     mocker.patch("os.getenv", return_value=f"[{lat},{lon}]")
 
     # Calculate sunrise using the new function interface
-    result = sunrise(test_date.year, test_date.month, test_date.day)
-    calculated_decimal = result["decimal"]
+    calculated_decimal = sunrise(test_date.year, test_date.month, test_date.day)
 
     # Get reference sunrise from Astral in UTC
     location = LocationInfo("Test", "Test", "UTC", lat, lon)
@@ -49,8 +48,7 @@ def test_sunset(mocker, lat: float, lon: float, test_date: datetime.date) -> Non
     mocker.patch("os.getenv", return_value=f"[{lat},{lon}]")
 
     # Calculate sunset using the new function interface
-    result = sunset(test_date.year, test_date.month, test_date.day)
-    calculated_decimal = result["decimal"]
+    calculated_decimal = sunset(test_date.year, test_date.month, test_date.day)
 
     # Get reference sunset from Astral in UTC
     location = LocationInfo("Test", "Test", "UTC", lat, lon)

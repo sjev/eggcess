@@ -37,7 +37,7 @@ def _calc_sun_time(
     day: int,
     lat: float,
     lon: float,
-) -> dict[str, float]:
+) -> float:
     """Calculate sunrise or sunset time using the given date and location."""
     TO_RAD: float = math.pi / 180
 
@@ -104,10 +104,7 @@ def _calc_sun_time(
     UT: float = T - lngHour
     UT = forceRange(UT, 24)
 
-    hr: float = forceRange(int(UT), 24)
-    minutes: float = round((UT - int(UT)) * 60, 0)
-
-    return {"decimal": UT, "hr": hr, "min": minutes}
+    return UT  # decimal hours
 
 
 def sunrise(year: int, month: int, day: int) -> dict[str, float]:
