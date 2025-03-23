@@ -126,15 +126,18 @@ def main():
         tsk.execute()
 
     try:
-        while True:
-            print(".", end="")
-            time.sleep(1)
+        pass
+        # while True:
+        #     print(".", end="")
+        #     time.sleep(1)
 
     except Exception as e:
         logger.error(f"Main crashed: {type(e).__name__}: {e}")
 
         time.sleep(5)
         microcontroller.reset()
+
+    logger.info("Main loop ended")
 
 
 if __name__ == "__main__":
