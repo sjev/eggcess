@@ -21,6 +21,11 @@ class Task:
         """Returns True if the task has been executed today."""
         return self._last_executed == time.localtime().tm_yday
 
+    @is_executed.setter
+    def is_executed(self, value: bool):
+        """Set the executed flag to True."""
+        self._last_executed = time.localtime().tm_yday
+
     def main(self):
         """Main task function."""
         raise NotImplementedError  # pragma: no cover
@@ -96,11 +101,15 @@ class SetClockTask(Task):
             logger.error("Failed to set clock from NTP server")
 
 
-def get_latest_task(tasks) -> Task | None:
-    current_time = timing.now()
-    # Filter tasks that are scheduled before or at current time.
-    tasks_before = [task for task in tasks if task.exec_time <= current_time]
-    if tasks_before:
-        # Return the task with the maximum exec_time.
-        return max(tasks_before, key=lambda task: task.exec_time)
-    return None
+def init_open_close(open_task: Task, close_task: Task):
+    """Initialize the open and close tasks."""
+    now = timing.now()
+
+    if open_task.exec_time is None or close_task.exec_time is None:
+        raise ValueError("Open and close times must be set")
+
+    if open_task.exec_time <= now < close_task.exec_time:
+        open_task.execute()
+    if now >= close_task.exec_time:
+        open_task.is_executed = True  # skip open task
+        close_task.execute()

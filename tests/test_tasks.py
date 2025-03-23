@@ -18,8 +18,8 @@ class FakeDoor(Mock):
 
 # Dummy task subclass for testing the is_executed property behavior.
 class DummyTask(daily_tasks.Task):
-    def __init__(self, name: str, exec_time: float | None):
-        super().__init__(name, exec_time)
+    def __init__(self, exec_time: float | None):
+        super().__init__("dummy_task", exec_time)
         self.executed_flag = False
 
     def main(self):
@@ -29,7 +29,7 @@ class DummyTask(daily_tasks.Task):
 def test_skip_task_when_exec_time_is_none(mocker):
     mocker.patch("daily_tasks.timing.now", return_value=10.0)
 
-    task = DummyTask("Dummy", None)
+    task = DummyTask(None)
     task.execute()
     assert not task.is_executed
 
@@ -37,7 +37,7 @@ def test_skip_task_when_exec_time_is_none(mocker):
 def test_execute_task_when_exec_time_is_now(mocker):
     mocker.patch("daily_tasks.timing.now", return_value=10.0)
 
-    task = DummyTask("Dummy", 10.0)
+    task = DummyTask(10.0)
     task.execute()
     assert task.is_executed
 
@@ -142,24 +142,6 @@ def test_task_does_not_execute_twice(mocker):
     mock_logger.assert_not_called()
 
 
-def test_get_latest_task(mocker):
-    open_task = daily_tasks.OpenDoorTask(exec_time=5.0, door=None)
-    close_task = daily_tasks.CloseDoorTask(exec_time=10.0, door=None)
-    tasks_list = [open_task, close_task]
-
-    mocker.patch("daily_tasks.timing.now", return_value=11.0)
-    latest_task = daily_tasks.get_latest_task(tasks_list)
-    assert latest_task == close_task
-
-    mocker.patch("daily_tasks.timing.now", return_value=6.0)
-    latest_task = daily_tasks.get_latest_task(tasks_list)
-    assert latest_task == open_task
-
-    mocker.patch("daily_tasks.timing.now", return_value=4.0)
-    latest_task = daily_tasks.get_latest_task(tasks_list)
-    assert latest_task is None
-
-
 # -----------------------set clock task-----------------------
 def test_set_clock_task_success(mocker):
     # Ensure the task executes successfully.
@@ -208,7 +190,7 @@ def fake_localtime(day: int):
 
 def test_is_executed_default():
     """Ensure that before execution, is_executed is False (default _last_executed = -1)."""
-    task = DummyTask("Dummy", 5.0)
+    task = DummyTask(5.0)
     assert not task.is_executed, "Task should not be marked as executed before running."
 
 
@@ -221,7 +203,7 @@ def test_task_execution_resets_is_executed(mocker):
     mocker.patch("time.localtime", return_value=fake_localtime(100))
     mocker.patch("daily_tasks.timing.now", return_value=10.0)
 
-    task = DummyTask("Dummy", 5.0)
+    task = DummyTask(5.0)
     assert not task.is_executed, "Initially, task should not be executed."
 
     task.execute()
@@ -231,3 +213,26 @@ def test_task_execution_resets_is_executed(mocker):
     # Now simulate a new day (day 101); is_executed should automatically reset.
     mocker.patch("time.localtime", return_value=fake_localtime(101))
     assert not task.is_executed, "On a new day, task should not be marked as executed."
+
+
+# -----------------------logic test-----------------------
+def test_open_should_not_run_after_close(mocker):
+    mocker.patch("daily_tasks.timing.now", return_value=19.0)
+
+    fake_door = FakeDoor()
+    fake_door.state = door.STATE_CLOSED
+
+    open_task = DummyTask(exec_time=6.0)
+    close_task = DummyTask(exec_time=18.0)
+
+    daily_tasks.init_open_close(open_task, close_task)
+
+    # simulate loop
+    open_task.execute()
+    close_task.execute()
+
+    assert open_task.is_executed
+    assert close_task.is_executed
+
+    assert not open_task.executed_flag
+    assert close_task.executed_flag

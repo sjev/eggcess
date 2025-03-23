@@ -25,10 +25,10 @@ import wifi
 import logger
 import mqtt
 import timing
-from daily_tasks import CloseDoorTask, OpenDoorTask, SetClockTask, get_latest_task
+from daily_tasks import CloseDoorTask, OpenDoorTask, SetClockTask, init_open_close
 from door import Door
 
-__version__ = "2.3.2"
+__version__ = "2.4.0"
 
 
 DEVICE_NAME = os.getenv("CIRCUITPY_WEB_INSTANCE_NAME", "eggcess")
@@ -162,9 +162,7 @@ def main():
 
     update_door_times()
 
-    tsk = get_latest_task([open_task, close_task])
-    if tsk is not None:
-        tsk.execute()
+    init_open_close(open_task, close_task)
 
     mqtt_client = mqtt.get_client(on_message=command_callback)
 
