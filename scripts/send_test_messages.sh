@@ -22,10 +22,10 @@ while true; do
   echo "Sending open command"
   mosquitto_pub -h 192.168.1.100 -t $MQTT_ROOT/cmd -m "open" -u "$MQTT_USER" -P "$MQTT_PASS"
 
-  sleep 10
+  sleep 30
   # send close command
   echo "Sending close command"
   mosquitto_pub -h 192.168.1.100 -t $MQTT_ROOT/cmd -m "close" -u "$MQTT_USER" -P "$MQTT_PASS"
-  sleep 10
+  sleep 30
 
 done
