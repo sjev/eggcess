@@ -46,6 +46,7 @@ class OpenDoorTask(Task):
             return
 
         logger.info("Opening door")
+        self.door.open()
 
 
 class CloseDoorTask(Task):
@@ -61,6 +62,7 @@ class CloseDoorTask(Task):
             return
 
         logger.info("Closing door")
+        self.door.close()
 
 
 def get_latest_task(tasks) -> Task | None:
