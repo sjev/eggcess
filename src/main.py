@@ -96,33 +96,30 @@ def report_status(p):
     print(msg)
 
 
-def update_timing():
+def update_door_times():
     """update time and open and close times"""
 
-    try:
-        # truncate log if necessary
-        logger.truncate_log()
+    # check that clock is set
+    if not timing.is_rtc_set():
+        logger.error("RTC not set")
+        raise RuntimeError("RTC not set")
 
-        # get open and close times
-        date = timing.date()
+    # get open and close times
+    date = timing.date()
 
-        open_task.exec_time, close_task.exec_time = timing.extract_floats_from_file(
-            date
-        )
+    open_task.exec_time, close_task.exec_time = timing.extract_floats_from_file(date)
 
-        # update ntp time (may fail)
-        print("updating time")
-        timing.update_time()
-
-    except timing.MaxRetriesExceeded as e:
-        logger.error(f"{type(e).__name__}: {e}")
+    # update ntp time (may fail)
+    print("updating time")
+    timing.update_ntp_time()
 
 
 def main():
     """main function"""
 
     logger.info("****** starting door ******")
-    update_timing()
+    timing.update_ntp_time()
+    update_door_times()
 
     tsk = get_latest_task([open_task, close_task])
     if tsk is not None:

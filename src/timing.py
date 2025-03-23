@@ -10,6 +10,7 @@ import adafruit_ntp
 import rtc
 import socketpool
 import wifi
+import logger
 
 DATA_FILE = "sun_lut.csv"
 
@@ -35,7 +36,7 @@ def extract_floats_from_file(
     raise ValueError("Date not found in file")
 
 
-def update_time(max_attempts=10, retry_delay=5):
+def update_ntp_time(max_attempts=10, retry_delay=5):
     """update the RTC time from NTP server"""
 
     pool = socketpool.SocketPool(wifi.radio)
@@ -44,7 +45,7 @@ def update_time(max_attempts=10, retry_delay=5):
     attempts = 0
 
     while attempts < max_attempts:
-        print(f"Updating time attempt {attempts + 1}")
+        logger.debug(f"Updating time attempt {attempts + 1}")
         try:
             rtc.RTC().datetime = ntp.datetime
 
@@ -54,13 +55,18 @@ def update_time(max_attempts=10, retry_delay=5):
             attempts = 0  # reset attempts
         except Exception as e:
             attempts += 1
-            print(f"Error updating time:  {type(e).__name__}: {e}")
-            print(f"Sleeping for {retry_delay} seconds")
+            logger.debug(f"Error updating time:  {type(e).__name__}: {e}")
+            logger.debug(f"Sleeping for {retry_delay} seconds")
             time.sleep(retry_delay)
         return
 
     # if we get here, we have exceeded the max attempts, raise an exception
     raise MaxRetriesExceeded("Failed to update time")
+
+
+def is_rtc_set() -> bool:
+    """Check if the RTC is set"""
+    return rtc.RTC().datetime.tm_year > 2000
 
 
 def time_str():
@@ -109,7 +115,7 @@ def now() -> float:
 def test() -> None:
     """basic testing function"""
     print("Running test function")
-    update_time()
+    update_ntp_time()
     today = date()
     now_time = now()
     print(f"Today: {today}, Now: {now_time}")
