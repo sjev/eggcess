@@ -1,13 +1,12 @@
 import datetime
 import math
-import time
 import pytest
-from sun import Sun
+from sun import sunrise, sunset
 from astral import LocationInfo
 from astral.sun import sun as a_sun
 from datetime import timezone
 
-# Tolerance in decimal hours 1 minute
+# Tolerance in decimal hours: 1 minute ~ 1/60
 TOLERANCE = 1 / 60
 
 
@@ -19,16 +18,11 @@ TOLERANCE = 1 / 60
     ],
 )
 def test_sunrise(mocker, lat: float, lon: float, test_date: datetime.date) -> None:
-    # Patch time.localtime to return a fixed date (using noon as placeholder)
-    def fake_localtime():
-        dt = datetime.datetime(test_date.year, test_date.month, test_date.day, 12, 0, 0)
-        return dt.timetuple()
+    # Override os.getenv to simulate a correct list being returned
+    mocker.patch("os.getenv", return_value=[lat, lon])
 
-    mocker.patch("time.localtime", side_effect=fake_localtime)
-
-    # Calculate sunrise using your module
-    sun_calc = Sun(lat, lon)
-    result = sun_calc.sunrise()
+    # Calculate sunrise using the new function interface
+    result = sunrise(test_date.year, test_date.month, test_date.day)
     calculated_decimal = result["decimal"]
 
     # Get reference sunrise from Astral in UTC
@@ -37,7 +31,7 @@ def test_sunrise(mocker, lat: float, lon: float, test_date: datetime.date) -> No
     expected = s["sunrise"]
     expected_decimal = expected.hour + expected.minute / 60 + expected.second / 3600
 
-    # Compare results
+    # Compare results within tolerance
     assert math.isclose(
         calculated_decimal, expected_decimal, abs_tol=TOLERANCE
     ), f"Sunrise: calculated {calculated_decimal}, expected {expected_decimal}"
@@ -50,16 +44,12 @@ def test_sunrise(mocker, lat: float, lon: float, test_date: datetime.date) -> No
         (40.7128, -74.0060, datetime.date(2023, 12, 21)),  # New York on Dec 21
     ],
 )
-def test_sunset(mocker, lat, lon, test_date: datetime.date) -> None:
-    def fake_localtime():
-        dt = datetime.datetime(test_date.year, test_date.month, test_date.day, 12, 0, 0)
-        return dt.timetuple()
+def test_sunset(mocker, lat: float, lon: float, test_date: datetime.date) -> None:
+    # Override os.getenv to simulate the correct location list
+    mocker.patch("os.getenv", return_value=[lat, lon])
 
-    mocker.patch("time.localtime", side_effect=fake_localtime)
-
-    # Calculate sunset using your module
-    sun_calc = Sun(lat, lon)
-    result = sun_calc.sunset()
+    # Calculate sunset using the new function interface
+    result = sunset(test_date.year, test_date.month, test_date.day)
     calculated_decimal = result["decimal"]
 
     # Get reference sunset from Astral in UTC
@@ -68,7 +58,7 @@ def test_sunset(mocker, lat, lon, test_date: datetime.date) -> None:
     expected = s["sunset"]
     expected_decimal = expected.hour + expected.minute / 60 + expected.second / 3600
 
-    # Compare results
+    # Compare results within tolerance
     assert math.isclose(
         calculated_decimal, expected_decimal, abs_tol=TOLERANCE
     ), f"Sunset: calculated {calculated_decimal}, expected {expected_decimal}"
