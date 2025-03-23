@@ -54,9 +54,12 @@ logger.info(f"*** system start  v{__version__}***")
 if wdt is None:
     raise RuntimeError("Watchdog not available")
 
-wdt.timeout = 300  # 5 minutes
-wdt.mode = WatchDogMode.RESET
-wdt.feed()
+try:
+    wdt.timeout = 300.0  # 5 minutes
+    wdt.mode = WatchDogMode.RESET
+    wdt.feed()
+except Exception as e:
+    logger.error(f"Could not init watchdog: {e}")
 
 
 door = Door()
