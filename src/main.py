@@ -28,7 +28,7 @@ import timing
 from daily_tasks import CloseDoorTask, OpenDoorTask, SetClockTask, get_latest_task
 from door import Door
 
-__version__ = "2.3.1"
+__version__ = "2.3.2"
 
 
 DEVICE_NAME = os.getenv("CIRCUITPY_WEB_INSTANCE_NAME", "eggcess")
@@ -130,7 +130,14 @@ def update_door_times():
     # get open and close times
     date = timing.date()
 
-    open_task.exec_time, close_task.exec_time = timing.extract_floats_from_file(date)
+    open_time, close_time = timing.extract_floats_from_file(date)
+
+    logger.info(
+        f"{open_time=} ({timing.hours2str(open_time)}), {close_time=} ({timing.hours2str(close_time)})"
+    )
+
+    open_task.exec_time = open_time
+    close_task.exec_time = close_time
 
 
 def handle_mqtt(client):
