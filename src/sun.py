@@ -110,7 +110,7 @@ class Sun:
         return {"decimal": UT, "hr": hr, "min": minutes}
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
 
     sun = Sun(51.0, 6.0)
     print(f"Sunrise: {sun.sunrise()}")
