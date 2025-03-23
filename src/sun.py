@@ -1,13 +1,7 @@
-""" Stand-alone module to calculate sunrise and sunset times. """
+"""Stand-alone module to calculate sunrise and sunset times."""
 
 import math
-import time as utime
-from typing import Tuple, Dict, List
-
-
-def getCurrentUTC() -> List[int]:
-    now = utime.localtime()
-    return [now[2], now[1], now[0]]
+import time
 
 
 def forceRange(v: float, max_value: int) -> float:
@@ -22,20 +16,22 @@ def forceRange(v: float, max_value: int) -> float:
 class Sun:
     """Calculate sunrise and sunset."""
 
-    def __init__(self, latlon: Tuple[float, float]) -> None:
-        self.latitude, self.longitude = latlon
+    def __init__(self, lat: float, lon: float) -> None:
+        self.latitude = lat
+        self.longitude = lon
 
-    def sunrise(self) -> Dict[str, float]:
+    def sunrise(self) -> dict[str, float]:
         """Calculate sunrise time."""
         return self._calcSunTime(isRiseTime=True)
 
-    def sunset(self) -> Dict[str, float]:
+    def sunset(self) -> dict[str, float]:
         """Calculate sunset time."""
         return self._calcSunTime(isRiseTime=False)
 
-    def _calcSunTime(self, isRiseTime: bool, zenith: float = 90.8) -> Dict[str, float]:
+    def _calcSunTime(self, isRiseTime: bool, zenith: float = 90.8) -> dict[str, float]:
         """Calculate sun time (sunrise or sunset)."""
-        day, month, year = getCurrentUTC()
+        utc_time = time.localtime()
+        day, month, year = utc_time.tm_mday, utc_time.tm_mon, utc_time.tm_year
 
         TO_RAD = math.pi / 180
 
@@ -115,8 +111,7 @@ class Sun:
 
 
 if __name__ == "__main__":
-    from my_secrets import LOCATION_LATLON
 
-    sun = Sun(LOCATION_LATLON)
+    sun = Sun(51.0, 6.0)
     print(f"Sunrise: {sun.sunrise()}")
     print(f"Sunset: {sun.sunset()}")
