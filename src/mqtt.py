@@ -84,6 +84,12 @@ def test() -> None:
 
     logger.debug(f"{client.is_connected()=}")
 
+    # check disconnect
+    client.disconnect()
+    if not client.is_connected():
+        logger.debug("Client disconnected, reconnecting")
+        client.connect()
+
     for counter in range(10):
 
         client.loop(timeout=1.0)
