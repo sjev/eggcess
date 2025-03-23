@@ -25,7 +25,7 @@ import wifi
 import logger
 import mqtt
 import timing
-from daily_tasks import CloseDoorTask, OpenDoorTask, get_latest_task
+from daily_tasks import CloseDoorTask, OpenDoorTask, SetClockTask, get_latest_task
 from door import Door
 
 __version__ = "2.3.1"
@@ -59,6 +59,7 @@ door = Door()
 led = door.stepper.pins[0]
 open_task = OpenDoorTask(exec_time=None, door=door)
 close_task = CloseDoorTask(exec_time=None, door=door)
+set_clock_task = SetClockTask(exec_time=1.0)
 
 
 def command_callback(client, topic, command):  # pylint: disable=unused-argument
@@ -75,7 +76,7 @@ def command_callback(client, topic, command):  # pylint: disable=unused-argument
 
 
 def status_msg() -> str:
-    """report status"""
+    """generate status string"""
 
     # Pre-initialize the message dictionary with static values
     msg = {
@@ -165,6 +166,7 @@ def main():
             handle_mqtt(mqtt_client)
             wdt.feed()
             # execute tasks
+            set_clock_task.execute()
             open_task.execute()
             close_task.execute()
 
