@@ -67,6 +67,21 @@ class CloseDoorTask(Task):
         self.door.save_state()
 
 
+class SetClockTask(Task):
+    """set clock from NTP server"""
+
+    def __init__(self, exec_time: float = 1.0):
+        super().__init__("set_clock", exec_time)
+
+    def main(self):
+        """Set the clock."""
+        logger.info("Setting clock")
+        try:
+            timing.update_ntp_time()
+        except timing.MaxRetriesExceeded:
+            logger.error("Failed to set clock from NTP server")
+
+
 def get_latest_task(tasks) -> Task | None:
     current_time = timing.now()
     # Filter tasks that are scheduled before or at current time.
