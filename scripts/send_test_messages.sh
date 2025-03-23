@@ -17,4 +17,15 @@ while true; do
   echo "Published: $message"
   counter=$((counter + 1))
   sleep 1
+
+  # send open command
+  echo "Sending open command"
+  mosquitto_pub -h 192.168.1.100 -t $MQTT_ROOT/cmd -m "open" -u "$MQTT_USER" -P "$MQTT_PASS"
+
+  sleep 10
+  # send close command
+  echo "Sending close command"
+  mosquitto_pub -h 192.168.1.100 -t $MQTT_ROOT/cmd -m "close" -u "$MQTT_USER" -P "$MQTT_PASS"
+  sleep 10
+
 done
