@@ -69,7 +69,6 @@ class OpenDoorTask(Task):
         if self.door.state == door.STATE_OPEN:
             return
 
-        logger.info("Opening door")
         self.door.open()
 
 
@@ -85,7 +84,6 @@ class CloseDoorTask(Task):
         if self.door.state == door.STATE_CLOSED:
             return
 
-        logger.info("Closing door")
         self.door.close()
 
 
