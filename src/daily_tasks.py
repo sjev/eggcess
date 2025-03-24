@@ -47,7 +47,7 @@ class Task:
         current_time = timing.now()
 
         if current_time >= self.exec_time and not self.is_executed:
-            logger.info(f"Executing task: {self.name} {current_time=}")
+            logger.debug(f"Executing task: {self.name} {current_time=}")
             self.main()
             self._last_executed = time.localtime().tm_yday
 
