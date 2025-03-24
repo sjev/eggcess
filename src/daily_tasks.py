@@ -9,10 +9,6 @@ import timing
 import door
 import sun
 
-BEFORE_SUNRISE = float(os.getenv("BEFORE_SUNRISE", "0.0"))
-AFTER_SUNSET = float(os.getenv("AFTER_SUNSET", "0.0"))
-NOT_BEFORE = float(os.getenv("NOT_BEFORE", "0.0"))
-
 
 class Task:
     """A task that runs once a day at a specified time."""
@@ -116,14 +112,21 @@ class UpdateDoorTimesTask(Task):
     def main(self):
         """Update open and close times."""
 
+        if not timing.is_rtc_set():
+            raise RuntimeError("RTC not set")
+
         ts = time.localtime()
 
-        open_time = sun.sunrise(ts.tm_year, ts.tm_mon, ts.tm_mday) - BEFORE_SUNRISE
+        before_sunrise = float(os.getenv("BEFORE_SUNRISE", "0.0"))
+        after_sunset = float(os.getenv("AFTER_SUNSET", "0.0"))
+        not_before = float(os.getenv("NOT_BEFORE", "0.0"))
 
-        if open_time < NOT_BEFORE:
-            open_time = NOT_BEFORE
+        open_time = sun.sunrise(ts.tm_year, ts.tm_mon, ts.tm_mday) - before_sunrise
 
-        close_time = sun.sunset(ts.tm_year, ts.tm_mon, ts.tm_mday) + AFTER_SUNSET
+        if open_time < not_before:
+            open_time = not_before
+
+        close_time = sun.sunset(ts.tm_year, ts.tm_mon, ts.tm_mday) + after_sunset
 
         logger.info(
             f"Updated door times: {timing.hours2str(open_time)}, {timing.hours2str(close_time)}"
