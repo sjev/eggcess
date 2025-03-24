@@ -26,12 +26,14 @@ from daily_tasks import (
 )
 from door import Door
 
-__version__ = "3.2.3"
+__version__ = "3.3.0"
 
 
 DEVICE_NAME = os.getenv("CIRCUITPY_WEB_INSTANCE_NAME", "eggcess")
 STATUS_TOPIC = os.getenv("STATUS_TOPIC", f"/{DEVICE_NAME}/status")
 STATE_TOPIC = os.getenv("STATE_TOPIC", f"/{DEVICE_NAME}/state")
+
+_mqtt_error_logged = False
 
 # set time
 timing.update_ntp_time()
@@ -137,38 +139,22 @@ def status_msg() -> str:
 
 
 def handle_mqtt(client):
-    """Perform MQTT tasks, with graceful error handling."""
+    global _mqtt_error_logged
     try:
-        # Check connection; try to connect if not connected.
         if not client.is_connected():
-            try:
-                client.connect()
-            except Exception as e:
-                logger.error(f"MQTT connection failed: {type(e).__name__}: {e}")
-                time.sleep(5)
-                return
+            client.connect()
+            if _mqtt_error_logged:
+                logger.info("MQTT connection restored")
+                _mqtt_error_logged = False
 
-        # Run the MQTT loop and publish the status.
         client.loop(timeout=5.0)
         client.publish(STATUS_TOPIC, status_msg())
 
     except Exception as e:
-        logger.error(f"MQTT error occurred: {type(e).__name__}: {e}")
-        # Try to disconnect gracefully.
-        try:
-            client.disconnect()
-        except Exception as disconnect_error:
-            logger.error(
-                f"Error during disconnect: {type(disconnect_error).__name__}: {disconnect_error}"
-            )
-        # Wait a few seconds before attempting to reconnect.
+        if not _mqtt_error_logged:
+            logger.error(f"MQTT error: {type(e).__name__}: {e}")
+            _mqtt_error_logged = True
         time.sleep(5)
-        try:
-            client.connect()
-        except Exception as connect_error:
-            logger.error(
-                f"Reconnection attempt failed: {type(connect_error).__name__}: {connect_error}"
-            )
 
 
 def main():
