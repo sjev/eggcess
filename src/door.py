@@ -15,7 +15,6 @@ DRIVE_PINS = [board.D0, board.D1, board.D2, board.D3]  # type: ignore
 MM_PER_REV = 19.6  # mm travel per revolution of the motor
 TRAVEL_MM = int(os.getenv("TRAVEL_MM", "330"))  # door travel distance in mm
 OPEN_EXTRA_MM = 10  # extra mm to open door, push against mechanical stop
-EXTRA_DELAY = 5  # extra delay in seconds to ensure door state transition
 
 logger.debug(f"Door travel distance: {TRAVEL_MM} mm")
 
