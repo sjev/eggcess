@@ -25,12 +25,11 @@ RUN apt-get install -y \
     mc \
     tree \
     git \
-    make \
     wget \
-    libusb-1.0-0 \
     net-tools \
     iproute2 \
-    iputils-ping
+    iputils-ping \
+    mosquitto-clients
 
 # cleanup
 RUN rm -rf /var/lib/apt/lists/*
