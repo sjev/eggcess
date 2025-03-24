@@ -26,7 +26,7 @@ from daily_tasks import (
 )
 from door import Door
 
-__version__ = "3.2.1"
+__version__ = "3.2.2"
 
 
 DEVICE_NAME = os.getenv("CIRCUITPY_WEB_INSTANCE_NAME", "eggcess")
@@ -175,6 +175,8 @@ def main():
     """main function"""
 
     set_door_timing_task.execute()
+
+    logger.info(f"Door state: {door.state}")
 
     init_open_close(open_task, close_task)
 
