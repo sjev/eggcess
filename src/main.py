@@ -26,7 +26,7 @@ from daily_tasks import (
 )
 from door import Door
 
-__version__ = "3.3.0"
+__version__ = "3.3.2"
 
 
 DEVICE_NAME = os.getenv("CIRCUITPY_WEB_INSTANCE_NAME", "eggcess")
@@ -141,16 +141,19 @@ def status_msg() -> str:
 def handle_mqtt(client):
     global _mqtt_error_logged
     try:
-        if not client.is_connected():
+        if client.is_connected():
+            client.loop(timeout=5.0)
+            client.publish(STATUS_TOPIC, status_msg())
+
+        else:
+            logger.debug("MQTT not connected, reconnecting")
             client.connect()
             if _mqtt_error_logged:
                 logger.info("MQTT connection restored")
                 _mqtt_error_logged = False
 
-        client.loop(timeout=5.0)
-        client.publish(STATUS_TOPIC, status_msg())
-
     except Exception as e:
+        logger.debug(f"MQTT error: {type(e).__name__}: {e}")
         if not _mqtt_error_logged:
             logger.error(f"MQTT error: {type(e).__name__}: {e}")
             _mqtt_error_logged = True
