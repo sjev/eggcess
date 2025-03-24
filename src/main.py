@@ -26,7 +26,7 @@ from daily_tasks import (
 )
 from door import Door
 
-__version__ = "3.4.0"
+__version__ = "3.4.1"
 
 
 DEVICE_NAME = os.getenv("CIRCUITPY_WEB_INSTANCE_NAME", "eggcess")
@@ -157,6 +157,9 @@ def handle_mqtt(client):
         if not _mqtt_error_logged:
             logger.error(f"MQTT error: {type(e).__name__}: {e}")
             _mqtt_error_logged = True
+
+        res = client.reconnect()
+        logger.debug(f"Reconnect result: {res}")
         time.sleep(5)
 
 
