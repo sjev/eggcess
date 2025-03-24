@@ -9,4 +9,4 @@ if [ -z "$MQTT_USER" ] || [ -z "$MQTT_PASS" ]; then
   exit 1
 fi
 
-mosquitto_sub -t $MQTT_ROOT/# -v -h 192.168.1.100 -u $MQTT_USER -P $MQTT_PASS
+mosquitto_sub -t $MQTT_ROOT/# -v -h $MQTT_HOST -u $MQTT_USER -P $MQTT_PASS
