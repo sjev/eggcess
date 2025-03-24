@@ -1,7 +1,6 @@
 import os
 import wifi
 import socketpool
-import time
 import adafruit_minimqtt.adafruit_minimqtt as mqtt
 import logger
 
