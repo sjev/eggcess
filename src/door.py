@@ -83,9 +83,6 @@ class Door:
     def state(self, new_state: str):
         """Set a new door state and save it if needed."""
         self._state = State(new_state)
-
-    def save_state(self):
-        """Save the current door state."""
         self._state.save()
 
     def move(self, direction: int, distance_mm: float):
@@ -113,10 +110,11 @@ class Door:
             logger.debug("Door is already open")
             return
 
+        logger.info("Opening door")
         self.state = STATE_MOVING
         self.move(DIRECTION_OPEN, distance_mm)
         self.state = STATE_OPEN
-        logger.debug("Door is open")
+        logger.info("Door is open")
 
     def close(self, distance_mm: float = TRAVEL_MM):
         """Close the door."""
@@ -125,10 +123,11 @@ class Door:
             logger.debug("Door is already closed")
             return
 
+        logger.info("Closing door")
         self.state = STATE_MOVING
         self.move(DIRECTION_CLOSE, distance_mm)
         self.state = STATE_CLOSED
-        logger.debug("Door is closed")
+        logger.info("Door is closed")
 
 
 def test():
@@ -141,7 +140,6 @@ def test():
 
     door.open(test_distance)
     door.close(test_distance)
-    door.save_state()
 
 
 if __name__ == "__main__":
