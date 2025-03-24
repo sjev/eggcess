@@ -26,7 +26,7 @@ from daily_tasks import (
 )
 from door import Door
 
-__version__ = "3.2.2"
+__version__ = "3.2.3"
 
 
 DEVICE_NAME = os.getenv("CIRCUITPY_WEB_INSTANCE_NAME", "eggcess")
@@ -144,7 +144,7 @@ def handle_mqtt(client):
             try:
                 client.connect()
             except Exception as e:
-                logger.debug(f"MQTT connection failed: {type(e).__name__}: {e}")
+                logger.error(f"MQTT connection failed: {type(e).__name__}: {e}")
                 time.sleep(5)
                 return
 
@@ -153,12 +153,12 @@ def handle_mqtt(client):
         client.publish(STATUS_TOPIC, status_msg())
 
     except Exception as e:
-        logger.debug(f"MQTT error occurred: {type(e).__name__}: {e}")
+        logger.error(f"MQTT error occurred: {type(e).__name__}: {e}")
         # Try to disconnect gracefully.
         try:
             client.disconnect()
         except Exception as disconnect_error:
-            logger.debug(
+            logger.error(
                 f"Error during disconnect: {type(disconnect_error).__name__}: {disconnect_error}"
             )
         # Wait a few seconds before attempting to reconnect.
@@ -166,7 +166,7 @@ def handle_mqtt(client):
         try:
             client.connect()
         except Exception as connect_error:
-            logger.debug(
+            logger.error(
                 f"Reconnection attempt failed: {type(connect_error).__name__}: {connect_error}"
             )
 
