@@ -9,8 +9,9 @@ import timing
 import door
 import sun
 
-BEFORE_SUNRISE = os.getenv("BEFORE_SUNRISE", 0.0)
-AFTER_SUNSET = os.getenv("AFTER_SUNSET", 0.0)
+BEFORE_SUNRISE = float(os.getenv("BEFORE_SUNRISE", "0.0"))
+AFTER_SUNSET = float(os.getenv("AFTER_SUNSET", "0.0"))
+NOT_BEFORE = float(os.getenv("NOT_BEFORE", "0.0"))
 
 
 class Task:
@@ -118,6 +119,10 @@ class UpdateDoorTimesTask(Task):
         ts = time.localtime()
 
         open_time = sun.sunrise(ts.tm_year, ts.tm_mon, ts.tm_mday) - BEFORE_SUNRISE
+
+        if open_time < NOT_BEFORE:
+            open_time = NOT_BEFORE
+
         close_time = sun.sunset(ts.tm_year, ts.tm_mon, ts.tm_mday) + AFTER_SUNSET
 
         logger.info(
