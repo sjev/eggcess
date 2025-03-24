@@ -26,7 +26,7 @@ from daily_tasks import (
 )
 from door import Door
 
-__version__ = "3.2.0"
+__version__ = "3.2.1"
 
 
 DEVICE_NAME = os.getenv("CIRCUITPY_WEB_INSTANCE_NAME", "eggcess")
@@ -137,20 +137,38 @@ def status_msg() -> str:
 
 
 def handle_mqtt(client):
-    """perform mqtt tasks, blocking, delays main loop."""
-    # check connection
-    if not client.is_connected():
+    """Perform MQTT tasks, with graceful error handling."""
+    try:
+        # Check connection; try to connect if not connected.
+        if not client.is_connected():
+            try:
+                client.connect()
+            except Exception as e:
+                logger.debug(f"MQTT connection failed: {type(e).__name__}: {e}")
+                time.sleep(5)
+                return
+
+        # Run the MQTT loop and publish the status.
+        client.loop(timeout=5.0)
+        client.publish(STATUS_TOPIC, status_msg())
+
+    except Exception as e:
+        logger.debug(f"MQTT error occurred: {type(e).__name__}: {e}")
+        # Try to disconnect gracefully.
+        try:
+            client.disconnect()
+        except Exception as disconnect_error:
+            logger.debug(
+                f"Error during disconnect: {type(disconnect_error).__name__}: {disconnect_error}"
+            )
+        # Wait a few seconds before attempting to reconnect.
+        time.sleep(5)
         try:
             client.connect()
-        except Exception as e:
-            logger.debug(f"MQTT connection failed: {type(e).__name__}: {e}")
-            time.sleep(5)
-            return
-
-    client.loop(timeout=5.0)
-
-    # send status
-    client.publish(STATUS_TOPIC, status_msg())
+        except Exception as connect_error:
+            logger.debug(
+                f"Reconnection attempt failed: {type(connect_error).__name__}: {connect_error}"
+            )
 
 
 def main():
