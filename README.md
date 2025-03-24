@@ -64,11 +64,14 @@ The board should now have wifi connection
 
 ## Uploading files
 
-* use `invoke` to sync files with the device.
+* use `invoke` to sync files with the device over serial
 
       pull         Pull files from the device to the local 'dest' directory, ignoring hidden files and .syncignore patterns.
       push         Push files from the local 'src' directory to the device, ignoring hidden files and .syncignore patterns.
       upload-lut   Upload the 'sun_lut.csv' file using the CircuitPython web workflow API
+
+* use `ampy put ...` to upload individual files over serial
+* use [web workflow](https://docs.circuitpython.org/en/latest/docs/workflows.html) to manage device remotely
 
 
 -------------------------------------------------------
