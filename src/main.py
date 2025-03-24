@@ -9,8 +9,9 @@ import json
 import os
 import time
 
+import microcontroller
 from microcontroller import watchdog as wdt
-from watchdog import WatchDogMode
+from watchdog import WatchDogMode, WatchDogTimeout
 import wifi
 
 import logger
@@ -25,7 +26,7 @@ from daily_tasks import (
 )
 from door import Door
 
-__version__ = "3.0.0"
+__version__ = "3.2.0"
 
 
 DEVICE_NAME = os.getenv("CIRCUITPY_WEB_INSTANCE_NAME", "eggcess")
@@ -56,7 +57,7 @@ if wdt is None:
 
 try:
     wdt.timeout = 300.0  # 5 minutes
-    wdt.mode = WatchDogMode.RESET
+    wdt.mode = WatchDogMode.RAISE
     wdt.feed()
 except Exception as e:
     logger.error(f"Could not init watchdog: {e}")
@@ -84,8 +85,11 @@ def command_callback(client, topic, command):  # pylint: disable=unused-argument
     elif command == "close":
         logger.info("closing by command")
         door.close()
+    elif command == "reset":
+        logger.info("resetting by command")
+        microcontroller.reset()
     else:
-        print("invalid command")
+        logger.error(f"invalid command {command}")
 
 
 def status_msg() -> str:
@@ -166,10 +170,16 @@ def main():
             for task in all_tasks:
                 task.execute()
 
+    except WatchDogTimeout:
+        logger.error("Watchdog timeout")
+        microcontroller.reset()
+
     except Exception as e:
         logger.error(f"Main crashed: {type(e).__name__}: {e}")
 
-    logger.info("Main loop ended")
+    logger.info("Main loop ended, resetting in 10 seconds")
+    time.sleep(10)
+    microcontroller.reset()
 
 
 if __name__ == "__main__":
