@@ -26,7 +26,7 @@ from daily_tasks import (
 )
 from door import Door
 
-__version__ = "3.4.1"
+__version__ = "3.4.2"
 
 
 DEVICE_NAME = os.getenv("CIRCUITPY_WEB_INSTANCE_NAME", "eggcess")
@@ -94,6 +94,12 @@ def command_callback(client, topic, command):  # pylint: disable=unused-argument
         logger.error(f"invalid command {command}")
 
 
+def flash_led():
+    led.value = 1
+    time.sleep(0.01)
+    led.value = 0
+
+
 def status_msg() -> str:
     """generate status string"""
 
@@ -104,11 +110,6 @@ def status_msg() -> str:
     }
 
     network = wifi.radio.ap_info
-
-    # Flash LED
-    led.value = 1
-    time.sleep(0.01)
-    led.value = 0
 
     # Update dynamic values
     utc_time = time.localtime()
@@ -176,6 +177,7 @@ def main():
 
     try:
         while True:
+            flash_led()
             handle_mqtt(mqtt_client)
             wdt.feed()
             # execute tasks
