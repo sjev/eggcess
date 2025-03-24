@@ -26,7 +26,7 @@ from daily_tasks import (
 )
 from door import Door
 
-__version__ = "3.3.2"
+__version__ = "3.3.3"
 
 
 DEVICE_NAME = os.getenv("CIRCUITPY_WEB_INSTANCE_NAME", "eggcess")
@@ -59,7 +59,7 @@ if wdt is None:
 
 try:
     wdt.timeout = 300.0  # 5 minutes
-    wdt.mode = WatchDogMode.RAISE
+    wdt.mode = WatchDogMode.RESET
     wdt.feed()
 except Exception as e:
     logger.error(f"Could not init watchdog: {e}")
