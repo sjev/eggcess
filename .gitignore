@@ -8,3 +8,4 @@ __pycache__/
 tests/log.txt
 tests/.coverage
 .coverage
+*.bin
