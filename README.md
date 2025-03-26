@@ -58,7 +58,7 @@ The board should now have wifi connection
 
 ## Development
 1. Start up VSCode devcontainer. The `Dockerfile` contains all the development goodies, like  stubs.
-2. generate lookup table for open and close times using `calculations/calculate_lut.ipynb`
+2. (optional) generate lookup table for open and close times using `calculations/calculate_lut.ipynb` if you need a more complex open-close schedule, for example different opening times during weekend, DST adjustments etc.
 
 
 
