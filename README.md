@@ -58,7 +58,9 @@ The board should now have wifi connection
 
 ## Development
 1. Start up VSCode devcontainer. The `Dockerfile` contains all the development goodies, like  stubs.
-2. (optional) generate lookup table for open and close times using `calculations/calculate_lut.ipynb` if you need a more complex open-close schedule, for example different opening times during weekend, DST adjustments etc.
+   - use pytest for running basic tests.
+   - use `mpremote run src/<file>.py`  to run tests on hardware ( some modules like `door.py` include functional tests when the module is run as `__main__`.
+3. (optional) generate lookup table for open and close times using `calculations/calculate_lut.ipynb` if you need a more complex open-close schedule, for example different opening times during weekend, DST adjustments etc.
 
 
 
