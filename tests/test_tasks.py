@@ -4,6 +4,7 @@ import daily_tasks
 import door
 from unittest.mock import Mock
 import logging
+import os
 
 log = logging.getLogger("mock_logger")
 
@@ -283,10 +284,35 @@ def test_open_should_not_run_after_close(mocker):
 def test_sun_times_calculation(mocker):
 
     mocker.patch("sun.sunrise", return_value=5.0)
-    mocker.patch("sun.sunset", return_value=18.0)
+    mocker.patch("sun.sunset", return_value=19.0)
 
     open_tsk = DummyTask(exec_time=6.0)
     close_tsk = DummyTask(exec_time=18.0)
     tsk = daily_tasks.UpdateDoorTimesTask(exec_time=1.0, open_task=open_tsk, close_task=close_tsk)
 
     tsk.execute()
+
+    assert tsk.is_executed
+    assert open_tsk.exec_time == 5.0
+    assert close_tsk.exec_time == 19.0
+
+    # set offsets
+    os.environ["BEFORE_SUNRISE"] = "1.0"
+    os.environ["AFTER_SUNSET"] = "0.5"
+
+    tsk.is_executed = False
+    tsk.execute()
+    assert open_tsk.exec_time == 4.0
+    assert close_tsk.exec_time == 19.5
+
+
+
+    # set not before
+    os.environ["NOT_BEFORE"] = "7.0"
+
+    tsk.is_executed = False
+    tsk.execute()
+
+    assert open_tsk.exec_time == 7.0
+    assert close_tsk.exec_time == 19.5
+
