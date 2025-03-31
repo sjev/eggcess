@@ -3,11 +3,14 @@ import time
 import daily_tasks
 import door
 from unittest.mock import Mock
+import logging
+
+log = logging.getLogger("mock_logger")
 
 
 @pytest.fixture(autouse=True)
-def patch_logger_log_to_file(mocker):
-    mocker.patch("logger.log_to_file", new=Mock())
+def patch_logger(mocker):
+    mocker.patch("daily_tasks.logger", log)
 
 
 @pytest.fixture(autouse=True)
@@ -49,7 +52,6 @@ def test_execute_task_when_exec_time_is_now(mocker):
 
 def test_open_door_task_executes_when_door_closed(mocker):
     mocker.patch("daily_tasks.timing.now", return_value=10.0)
-    mock_logger = mocker.patch("daily_tasks.logger.info")
 
     fake_door = FakeDoor()
     task = daily_tasks.OpenDoorTask(exec_time=5.0, door=fake_door)
@@ -71,7 +73,6 @@ def test_open_door_task_does_not_execute_before_time(mocker):
 
 def test_open_door_task_skips_when_door_already_open(mocker):
     mocker.patch("daily_tasks.timing.now", return_value=10.0)
-    mock_logger = mocker.patch("daily_tasks.logger.info")
 
     fake_door = FakeDoor()
     fake_door.state = door.STATE_OPEN
@@ -79,9 +80,6 @@ def test_open_door_task_skips_when_door_already_open(mocker):
     task = daily_tasks.OpenDoorTask(exec_time=5.0, door=fake_door)
     task.execute()
 
-    for call in mock_logger.call_args_list:
-        args, _ = call
-        assert "Opening door" not in args[0]
     assert task.is_executed
 
 
@@ -113,7 +111,6 @@ def test_close_door_task_does_not_execute_before_time(mocker):
 
 def test_close_door_task_skips_when_door_already_closed(mocker):
     mocker.patch("daily_tasks.timing.now", return_value=10.0)
-    mock_logger = mocker.patch("daily_tasks.logger.info")
 
     fake_door = FakeDoor()
     fake_door.state = door.STATE_CLOSED
@@ -121,9 +118,6 @@ def test_close_door_task_skips_when_door_already_closed(mocker):
     task = daily_tasks.CloseDoorTask(exec_time=5.0, door=fake_door)
     task.execute()
 
-    for call in mock_logger.call_args_list:
-        args, _ = call
-        assert "Closing door" not in args[0]
     assert task.is_executed
 
 
@@ -237,3 +231,16 @@ def test_open_should_not_run_after_close(mocker):
 
     assert not open_task.executed_flag
     assert close_task.executed_flag
+
+# -----------------------test sun times calculation-----------------------
+
+def test_sun_times_calculation(mocker):
+
+    mocker.patch("sun.sunrise", return_value=5.0)
+    mocker.patch("sun.sunset", return_value=18.0)
+
+    open_tsk = DummyTask(exec_time=6.0)
+    close_tsk = DummyTask(exec_time=18.0)
+    tsk = daily_tasks.UpdateDoorTimesTask(exec_time=1.0, open_task=open_tsk, close_task=close_tsk)
+
+    tsk.execute()

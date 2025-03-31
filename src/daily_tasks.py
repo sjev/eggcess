@@ -121,12 +121,18 @@ class UpdateDoorTimesTask(Task):
         after_sunset = float(os.getenv("AFTER_SUNSET", "0.0"))
         not_before = float(os.getenv("NOT_BEFORE", "0.0"))
 
-        open_time = sun.sunrise(ts.tm_year, ts.tm_mon, ts.tm_mday) - before_sunrise
+        # calculate sunrise and sunset times
+        sunrise = sun.sunrise(ts.tm_year, ts.tm_mon, ts.tm_mday)
+        sunset = sun.sunset(ts.tm_year, ts.tm_mon, ts.tm_mday)
+
+        logger.info(f"sunrise: {timing.hours2str(sunrise)} sunset: {timing.hours2str(sunset)}")
+
+        open_time = sunrise - before_sunrise
 
         if open_time < not_before:
             open_time = not_before
 
-        close_time = sun.sunset(ts.tm_year, ts.tm_mon, ts.tm_mday) + after_sunset
+        close_time = sunset + after_sunset
 
         logger.info(
             f"Updated door times: {timing.hours2str(open_time)}, {timing.hours2str(close_time)}"
