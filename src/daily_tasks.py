@@ -16,17 +16,26 @@ class Task:
     def __init__(self, name: str, exec_time: float | None):
         self.name = name
         self.exec_time = exec_time
-        self._last_executed = -1
+        self._yday_executed = -1 # used to reset executed flag on new day
+        self._exec_count = 0
+
+    @property
+    def exec_count(self) -> int:
+        """Return the number of times the task has been executed."""
+        return self._exec_count
 
     @property
     def is_executed(self) -> bool:
         """Returns True if the task has been executed today."""
-        return self._last_executed == time.localtime().tm_yday
+        return self._yday_executed == time.localtime().tm_yday
 
     @is_executed.setter
     def is_executed(self, value: bool):
-        """Set the executed flag to True."""
-        self._last_executed = time.localtime().tm_yday
+        """Set the executed flag."""
+        if value:
+            self._yday_executed = time.localtime().tm_yday
+        else:
+            self._yday_executed = -1
 
     def main(self):
         """Main task function."""
@@ -46,11 +55,12 @@ class Task:
         if current_time >= self.exec_time and not self.is_executed:
             logger.debug(f"Executing task: {self.name} {current_time=}")
             self.main()
-            self._last_executed = time.localtime().tm_yday
+            self._yday_executed = time.localtime().tm_yday
+            self._exec_count += 1
 
     def __str__(self):
         return (
-            f"{self.name} {self.exec_time=} {self.is_executed=} {self._last_executed=}"
+            f"{self.name} {self.exec_time=} {self.is_executed=} {self._yday_executed=}"
         )
 
 

@@ -49,6 +49,54 @@ def test_execute_task_when_exec_time_is_now(mocker):
     task.execute()
     assert task.is_executed
 
+def test_reset_on_new_day(mocker):
+
+    fake_time = time.struct_time((
+        2025,  # tm_year
+        1,     # tm_mon
+        1,     # tm_mday
+        10,    # tm_hour
+        0,     # tm_min
+        0,     # tm_sec
+        0,     # tm_wday (Monday)
+        1,     # tm_yday
+        0      # tm_isdst
+    ))
+    mocker.patch("time.localtime", return_value=fake_time)
+
+
+    tsk = DummyTask(5.0)
+    tsk.execute()
+    assert tsk.is_executed
+    assert tsk.exec_count == 1
+
+    # try second time
+    fake_time = time.struct_time((
+        2025,  # tm_year
+        1,     # tm_mon
+        2,     # tm_mday
+        10,    # tm_hour
+        0,     # tm_min
+        0,     # tm_sec
+        0,     # tm_wday (Monday)
+        2,     # tm_yday
+        0      # tm_isdst
+    ))
+    mocker.patch("time.localtime", return_value=fake_time)
+    assert time.localtime().tm_yday == 2
+    assert not tsk.is_executed # should reset on new day
+    tsk.execute()
+    assert tsk.exec_count == 2
+
+def test_reset_flag():
+
+    tsk = DummyTask(5.0)
+    tsk.is_executed = True
+    assert tsk.is_executed
+    tsk.is_executed = False
+    assert not tsk.is_executed
+
+#----------------------door tasks----------------------
 
 def test_open_door_task_executes_when_door_closed(mocker):
     mocker.patch("daily_tasks.timing.now", return_value=10.0)
@@ -123,18 +171,16 @@ def test_close_door_task_skips_when_door_already_closed(mocker):
 
 def test_task_does_not_execute_twice(mocker):
     mocker.patch("daily_tasks.timing.now", return_value=10.0)
-    mock_logger = mocker.patch("daily_tasks.logger.info")
 
     fake_door = FakeDoor()
     fake_door.state = door.STATE_OPEN
 
     task = daily_tasks.CloseDoorTask(exec_time=5.0, door=fake_door)
+    assert task.exec_count == 0
     task.execute()
-
-    mock_logger.reset_mock()
+    assert task.exec_count == 1
     task.execute()
-
-    mock_logger.assert_not_called()
+    assert task.exec_count == 1
 
 
 # -----------------------set clock task-----------------------
