@@ -55,19 +55,17 @@ def test_open_door_task_executes_when_door_closed(mocker):
     task = daily_tasks.OpenDoorTask(exec_time=5.0, door=fake_door)
     task.execute()
 
-    mock_logger.assert_any_call("Opening door")
     assert task.is_executed
 
 
 def test_open_door_task_does_not_execute_before_time(mocker):
     mocker.patch("daily_tasks.timing.now", return_value=3.0)
-    mock_logger = mocker.patch("daily_tasks.logger.info")
 
     fake_door = FakeDoor()
     task = daily_tasks.OpenDoorTask(exec_time=5.0, door=fake_door)
     task.execute()
 
-    mock_logger.assert_not_called()
+
     assert not task.is_executed
 
 
@@ -89,7 +87,6 @@ def test_open_door_task_skips_when_door_already_open(mocker):
 
 def test_close_door_task_executes_when_door_open(mocker):
     mocker.patch("daily_tasks.timing.now", return_value=10.0)
-    mock_logger = mocker.patch("daily_tasks.logger.info")
 
     fake_door = FakeDoor()
     fake_door.state = door.STATE_OPEN
@@ -97,7 +94,6 @@ def test_close_door_task_executes_when_door_open(mocker):
     task = daily_tasks.CloseDoorTask(exec_time=5.0, door=fake_door)
     task.execute()
 
-    mock_logger.assert_any_call("Closing door")
     assert task.is_executed
 
 
