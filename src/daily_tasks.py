@@ -137,10 +137,8 @@ class UpdateDoorTimesTask(Task):
 
         logger.info(f"sunrise: {timing.hours2str(sunrise)} sunset: {timing.hours2str(sunset)}")
 
-        open_time = sunrise - before_sunrise
-
-        if open_time < not_before:
-            open_time = not_before
+        # limit open time to not before
+        open_time = max(sunrise - before_sunrise, not_before)
 
         close_time = sunset + after_sunset
 
