@@ -6,7 +6,7 @@ import os
 import time
 import logger
 import timing
-import door
+from door import Door, STATE_CLOSED, STATE_OPEN
 import sun
 
 
@@ -67,13 +67,13 @@ class Task:
 class OpenDoorTask(Task):
     """Open the door at the specified time."""
 
-    def __init__(self, exec_time: float | None, door: door.Door):
+    def __init__(self, exec_time: float | None, door: Door):
         super().__init__("open_door", exec_time)
         self.door = door
 
     def main(self):
         """Open the door."""
-        if self.door.state == door.STATE_OPEN:
+        if self.door.state == STATE_OPEN:
             return
 
         self.door.open()
@@ -82,13 +82,13 @@ class OpenDoorTask(Task):
 class CloseDoorTask(Task):
     """Close the door at the specified time."""
 
-    def __init__(self, exec_time: float | None, door: door.Door):
+    def __init__(self, exec_time: float | None, door: Door):
         super().__init__("close_door", exec_time)
         self.door = door
 
     def main(self):
         """Close the door."""
-        if self.door.state == door.STATE_CLOSED:
+        if self.door.state == STATE_CLOSED:
             return
 
         self.door.close()
