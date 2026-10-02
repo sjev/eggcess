@@ -2,3 +2,4 @@ adafruit-ampy
 mpremote
 invoke
 circup
+websockets
