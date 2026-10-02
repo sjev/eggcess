@@ -21,27 +21,35 @@ from daily_tasks import (
     CloseDoorTask,
     OpenDoorTask,
     SetClockTask,
+    TruncateLogTask,
     UpdateDoorTimesTask,
     init_open_close,
 )
 from door import Door
 
-__version__ = "3.5.1"
+__version__ = "3.6.0"
 
 
 DEVICE_NAME = os.getenv("CIRCUITPY_WEB_INSTANCE_NAME", "eggcess")
 STATUS_TOPIC = os.getenv("STATUS_TOPIC", f"/{DEVICE_NAME}/status")
 STATE_TOPIC = os.getenv("STATE_TOPIC", f"/{DEVICE_NAME}/state")
 
-_mqtt_error_logged = False
+BOOT_RETRY_S = 60  # wait before reset when the clock cannot be set at boot
 
-# set time
-timing.update_ntp_time()
+def set_clock_at_boot() -> None:
+    """Keep the RTC if NTP fails. Without a valid RTC there is no schedule: retry via reset."""
+    try:
+        timing.update_ntp_time()
+    except timing.MaxRetriesExceeded:
+        logger.error("NTP failed at boot")
 
-# check that clock is set
-if not timing.is_rtc_set():
-    logger.error("RTC not set")
-    raise RuntimeError("RTC not set")
+    if not timing.is_rtc_set():
+        logger.debug(f"RTC not set, resetting in {BOOT_RETRY_S} s")
+        time.sleep(BOOT_RETRY_S)
+        microcontroller.reset()
+
+
+set_clock_at_boot()
 
 
 T_START = time.time()
@@ -74,8 +82,15 @@ open_task = OpenDoorTask(exec_time=None, door=door)
 close_task = CloseDoorTask(exec_time=None, door=door)
 set_clock_task = SetClockTask(exec_time=1.0)
 set_door_timing_task = UpdateDoorTimesTask(0.1, open_task, close_task)
+truncate_log_task = TruncateLogTask(0.2)
 
-all_tasks = [open_task, close_task, set_clock_task, set_door_timing_task]
+all_tasks = [
+    open_task,
+    close_task,
+    set_clock_task,
+    set_door_timing_task,
+    truncate_log_task,
+]
 
 
 def command_callback(client, topic, command):  # pylint: disable=unused-argument
@@ -139,48 +154,20 @@ def status_msg() -> str:
     return status
 
 
-def handle_mqtt(client):
-    global _mqtt_error_logged
-    try:
-        if client.is_connected():
-            client.loop(timeout=5.0)
-            client.publish(STATUS_TOPIC, status_msg())
-
-        else:
-            logger.debug("MQTT not connected, reconnecting")
-            client.connect()
-            if _mqtt_error_logged:
-                logger.info("MQTT connection restored")
-                _mqtt_error_logged = False
-
-    except Exception as e:
-        logger.debug(f"MQTT error: {type(e).__name__}: {e}")
-        if not _mqtt_error_logged:
-            logger.error(f"MQTT error: {type(e).__name__}: {e}")
-            _mqtt_error_logged = True
-
-        res = client.reconnect()
-        logger.debug(f"Reconnect result: {res}")
-        time.sleep(5)
-
-
 def main():
     """main function"""
 
-    set_door_timing_task.execute()
-
-    logger.info(f"Door state: {door.state}")
-
-    init_open_close(open_task, close_task)
-
-    mqtt_client = mqtt.get_client(on_message=command_callback)
-
     try:
+        set_door_timing_task.execute()
+        logger.info(f"Door state: {door.state}")
+        init_open_close(open_task, close_task)
+
+        mqtt_link = mqtt.Connection(mqtt.get_client(on_message=command_callback))
+
         while True:
             flash_led()
-            handle_mqtt(mqtt_client)
+            mqtt_link.service(STATUS_TOPIC, status_msg)
             wdt.feed()
-            # execute tasks
             for task in all_tasks:
                 task.execute()
 

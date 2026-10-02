@@ -129,7 +129,8 @@ class UpdateDoorTimesTask(Task):
 
         before_sunrise = float(os.getenv("BEFORE_SUNRISE", "0.0"))
         after_sunset = float(os.getenv("AFTER_SUNSET", "0.0"))
-        not_before = float(os.getenv("NOT_BEFORE", "0.0"))
+        not_before_local = float(os.getenv("NOT_BEFORE", "0.0"))
+        tz_offset = float(os.getenv("TZ_OFFSET", "1.0"))
 
         # calculate sunrise and sunset times
         sunrise = sun.sunrise(ts.tm_year, ts.tm_mon, ts.tm_mday)
@@ -137,8 +138,10 @@ class UpdateDoorTimesTask(Task):
 
         logger.info(f"sunrise: {timing.hours2str(sunrise)} sunset: {timing.hours2str(sunset)}")
 
-        # limit open time to not before
-        open_time = max(sunrise - before_sunrise, not_before)
+        # this task runs just after midnight UTC, before a DST switch at 01:00 UTC,
+        # so take the offset at noon to get the one valid at opening time
+        offset = timing.utc_offset((ts.tm_year, ts.tm_mon, ts.tm_mday, 12), tz_offset)
+        open_time = max(sunrise - before_sunrise, not_before_local - offset)
 
         close_time = sunset + after_sunset
 
@@ -147,6 +150,16 @@ class UpdateDoorTimesTask(Task):
         )
         self.open_task.exec_time = open_time
         self.close_task.exec_time = close_time
+
+
+class TruncateLogTask(Task):
+    """Keep the log file small so the flash never fills up."""
+
+    def __init__(self, exec_time: float):
+        super().__init__("truncate_log", exec_time)
+
+    def main(self):
+        logger.truncate_log()
 
 
 def init_open_close(open_task: Task, close_task: Task):

@@ -17,8 +17,12 @@ def log_to_file(message, level: str = "INFO", file=LOG_FILE):
     log_str = _log_string(message, level)
 
     print(log_str)
-    with open(file, "a") as f:
-        f.write(log_str + "\n")
+    # a full or read-only flash must never stop the door
+    try:
+        with open(file, "a") as f:
+            f.write(log_str + "\n")
+    except OSError as e:
+        print(f"log write failed: {e}")
 
 
 def info(message):
@@ -42,35 +46,29 @@ def debug(message):
 
 
 def truncate_log(file=LOG_FILE, max_lines=300, keep_lines=50):
-    """Truncate the log file to keep only the last 'keep_lines' lines if it exceeds 'max_lines' lines."""
-    # Check current line count in the file
-    line_count = 0
+    """Keep only the last 'keep_lines' lines once the file exceeds 'max_lines'."""
+    try:
+        _truncate(file, max_lines, keep_lines)
+    except OSError as e:
+        print(f"log truncate failed: {e}")
+
+
+def _truncate(file: str, max_lines: int, keep_lines: int):
     with open(file, "r") as f:
-        for _ in f:
-            line_count += 1
+        line_count = sum(1 for _ in f)
 
-    # Only proceed if the line count exceeds the max allowed lines
-    if line_count > max_lines:
-        print(
-            f"Truncating log file to {keep_lines} lines"
-        )  # Assuming log_to_file is a print for simplicity
+    if line_count <= max_lines:
+        return
 
-        # Identify the start line of the 'keep_lines' to keep
-        start_line = line_count - keep_lines
+    print(f"Truncating log file to {keep_lines} lines")
+    with open(file, "r") as fr:
+        with open(file + ".tmp", "w") as fw:
+            for _ in range(line_count - keep_lines):
+                fr.readline()
+            for line in fr:
+                fw.write(line)
 
-        # Write the remaining lines back to the file
-        with open(file, "r") as fr:
-            with open(file + ".tmp", "w") as fw:
-                # Skip the first 'start_line' lines
-                for _ in range(start_line):
-                    fr.readline()
-
-                # Copy remaining lines one by one
-                for line in fr:
-                    fw.write(line)
-
-        # Replace old file with new file
-        os.rename(file + ".tmp", file)
+    os.rename(file + ".tmp", file)
 
 
 # ------------ testing

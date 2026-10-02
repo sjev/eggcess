@@ -13,6 +13,8 @@ modules_to_mock = [
     "socketpool",
     "wifi",
     "board",
+    "adafruit_minimqtt",
+    "adafruit_minimqtt.adafruit_minimqtt",
 ]
 
 for mod in modules_to_mock:

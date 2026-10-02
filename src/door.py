@@ -49,7 +49,8 @@ class State:
                 data = json.load(f)
                 logger.debug(f"Loaded state: {data}")
                 return cls(data.get("state", STATE_UNKNOWN))
-        except OSError:
+        except (OSError, ValueError):
+            # ValueError: file corrupted by a power loss during write
             logger.debug("Failed to load state, returning unknown state")
             return cls(STATE_UNKNOWN)
 

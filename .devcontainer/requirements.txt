@@ -17,3 +17,4 @@ pytest-mock
 requests
 ruff
 types-requests
+websockets
