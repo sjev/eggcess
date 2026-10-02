@@ -10,7 +10,6 @@ import os
 import time
 
 import microcontroller
-import supervisor
 from microcontroller import watchdog as wdt
 from watchdog import WatchDogMode, WatchDogTimeout
 import wifi
@@ -36,10 +35,6 @@ STATUS_TOPIC = os.getenv("STATUS_TOPIC", f"/{DEVICE_NAME}/status")
 STATE_TOPIC = os.getenv("STATE_TOPIC", f"/{DEVICE_NAME}/state")
 
 BOOT_RETRY_S = 60  # wait before reset when the clock cannot be set at boot
-
-# safety net: rerun this file after any uncaught exception instead of halting
-supervisor.set_next_code_file(None, reload_on_error=True)
-
 
 def set_clock_at_boot() -> None:
     """Keep the RTC if NTP fails. Without a valid RTC there is no schedule: retry via reset."""
