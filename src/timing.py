@@ -55,6 +55,27 @@ def update_ntp_time(max_attempts=10, retry_delay=5):
     raise MaxRetriesExceeded("Failed to update time")
 
 
+def _last_sunday(year: int, month: int) -> int:
+    """Day of month of the last Sunday, for 31-day months (Sakamoto, Sunday=0)."""
+    t = [0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4]
+    y = year - 1 if month < 3 else year
+    weekday_31 = (y + y // 4 - y // 100 + y // 400 + t[month - 1] + 31) % 7
+    return 31 - weekday_31
+
+
+def utc_offset(ts, std_offset: float = 1.0) -> float:
+    """Local offset from UTC in hours for UTC time `ts`, using EU summer time rules.
+
+    Summer time runs from 01:00 UTC on the last Sunday of March
+    to 01:00 UTC on the last Sunday of October.
+    """
+    year, month, mday, hour = ts[0], ts[1], ts[2], ts[3]
+    start = (3, _last_sunday(year, 3), 1)
+    end = (10, _last_sunday(year, 10), 1)
+    is_summer = start <= (month, mday, hour) < end
+    return std_offset + 1.0 if is_summer else std_offset
+
+
 def is_rtc_set() -> bool:
     """Check if the RTC is set"""
     return rtc.RTC().datetime.tm_year > 2000

@@ -307,12 +307,45 @@ def test_sun_times_calculation(mocker):
 
 
 
-    # set not before
-    os.environ["NOT_BEFORE"] = "7.0"
+    # set not before, local time
+    os.environ["NOT_BEFORE"] = "8.0"
+    mocker.patch("daily_tasks.timing.utc_offset", return_value=2.0)
 
     tsk.is_executed = False
     tsk.execute()
 
-    assert open_tsk.exec_time == 7.0
+    assert open_tsk.exec_time == 6.0
     assert close_tsk.exec_time == 19.5
+
+
+def test_not_before_is_local_time_in_winter_and_summer(mocker):
+    mocker.patch("sun.sunrise", return_value=5.0)
+    mocker.patch("sun.sunset", return_value=17.0)
+    mocker.patch.dict(
+        os.environ,
+        {"NOT_BEFORE": "8.0", "TZ_OFFSET": "1.0", "BEFORE_SUNRISE": "0.0"},
+    )
+    open_tsk = DummyTask(exec_time=None)
+    close_tsk = DummyTask(exec_time=None)
+    tsk = daily_tasks.UpdateDoorTimesTask(1.0, open_tsk, close_tsk)
+
+    winter = time.struct_time((2026, 1, 15, 0, 6, 0, 3, 15, -1))
+    mocker.patch("daily_tasks.time.localtime", return_value=winter)
+    tsk.main()
+    assert open_tsk.exec_time == 7.0
+
+    # task runs 00:06 UTC, before the 01:00 UTC switch: must use summer offset
+    dst_start = time.struct_time((2026, 3, 29, 0, 6, 0, 6, 88, -1))
+    mocker.patch("daily_tasks.time.localtime", return_value=dst_start)
+    tsk.main()
+    assert open_tsk.exec_time == 6.0
+
+
+def test_truncate_log_task_truncates(mocker):
+    mocker.patch("daily_tasks.timing.now", return_value=1.0)
+    truncate = mocker.patch("daily_tasks.logger.truncate_log", create=True)
+
+    daily_tasks.TruncateLogTask(0.2).execute()
+
+    truncate.assert_called_once()
 

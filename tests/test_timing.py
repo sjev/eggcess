@@ -1,6 +1,39 @@
+import time
 import pytest
 
 import timing
+
+
+def test_utc_offset_follows_eu_summer_time():
+    winter = time.struct_time((2026, 1, 15, 12, 0, 0, 3, 15, -1))
+    summer = time.struct_time((2026, 7, 15, 12, 0, 0, 2, 196, -1))
+
+    assert timing.utc_offset(winter, std_offset=1.0) == 1.0
+    assert timing.utc_offset(summer, std_offset=1.0) == 2.0
+
+
+def test_summer_time_starts_last_sunday_of_march_0100_utc():
+    before = (2026, 3, 29, 0, 59, 0, 6, 88)
+    after = (2026, 3, 29, 1, 0, 0, 6, 88)
+
+    assert timing.utc_offset(before) == 1.0
+    assert timing.utc_offset(after) == 2.0
+
+
+def test_summer_time_ends_last_sunday_of_october_0100_utc():
+    before = (2026, 10, 25, 0, 59, 0, 6, 298)
+    after = (2026, 10, 25, 1, 0, 0, 6, 298)
+
+    assert timing.utc_offset(before) == 2.0
+    assert timing.utc_offset(after) == 1.0
+
+
+def test_last_sunday_matches_calendar():
+    assert timing._last_sunday(2026, 3) == 29
+    assert timing._last_sunday(2026, 10) == 25
+    assert timing._last_sunday(2027, 3) == 28
+    assert timing._last_sunday(2027, 10) == 31
+    assert timing._last_sunday(2028, 3) == 26  # leap year
 
 
 class FakeNTP:
