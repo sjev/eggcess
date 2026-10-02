@@ -1,3 +1,4 @@
+debug/
 src/my_secrets.py
 src/settings.toml
 .secrets.sh
