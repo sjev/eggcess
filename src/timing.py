@@ -42,25 +42,16 @@ def update_ntp_time(max_attempts=10, retry_delay=5):
     pool = socketpool.SocketPool(wifi.radio)
     ntp = adafruit_ntp.NTP(pool, tz_offset=0)
 
-    attempts = 0
-
-    while attempts < max_attempts:
-        logger.debug(f"Updating time attempt {attempts + 1}")
+    for attempt in range(max_attempts):
+        logger.debug(f"Updating time attempt {attempt + 1}")
         try:
             rtc.RTC().datetime = ntp.datetime
-
-            # Print the UTC time
             print("UTC Time:", time.localtime())
-
-            attempts = 0  # reset attempts
+            return
         except Exception as e:
-            attempts += 1
             logger.debug(f"Error updating time:  {type(e).__name__}: {e}")
-            logger.debug(f"Sleeping for {retry_delay} seconds")
             time.sleep(retry_delay)
-        return
 
-    # if we get here, we have exceeded the max attempts, raise an exception
     raise MaxRetriesExceeded("Failed to update time")
 
 
